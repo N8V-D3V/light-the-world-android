@@ -39,21 +39,9 @@ class DonationCartModule(
             action = "update_selection_input",
             details = mapOf("selection" to selection),
         )
-        val failure = validateSelection(selection)
+        val failure = validateSelection(selection) ?: validateExistingSelection(selection.selectedOptionId)
         if (failure != null) {
             return buildResponse(failure, "update_selection_rejected")
-        }
-
-        if (cartItems.none { it.selectedOptionId == selection.selectedOptionId }) {
-            logger.logDecision(
-                module = MODULE_NAME,
-                action = "update_selection_missing_target_decision",
-                details = mapOf(
-                    "decision" to "selection_update_no_op_target_missing",
-                    "selectedOptionId" to selection.selectedOptionId,
-                ),
-            )
-            return buildResponse(null, "selection_update_no_op_target_missing")
         }
 
         cartItems.replaceAll { current ->
@@ -76,23 +64,11 @@ class DonationCartModule(
                     message = "Donation selection identifier is required.",
                 )
             } else {
-                null
+                validateExistingSelection(selectedOptionId)
             }
 
         if (failure != null) {
             return buildResponse(failure, "remove_selection_rejected")
-        }
-
-        if (cartItems.none { it.selectedOptionId == selectedOptionId }) {
-            logger.logDecision(
-                module = MODULE_NAME,
-                action = "remove_selection_missing_target_decision",
-                details = mapOf(
-                    "decision" to "selection_remove_no_op_target_missing",
-                    "selectedOptionId" to selectedOptionId,
-                ),
-            )
-            return buildResponse(null, "selection_remove_no_op_target_missing")
         }
 
         cartItems.removeAll { it.selectedOptionId == selectedOptionId }
@@ -156,6 +132,16 @@ class DonationCartModule(
         }
         return null
     }
+
+    private fun validateExistingSelection(selectedOptionId: String): CopFailureResponse<DonationCartFailureReason>? =
+        if (cartItems.any { it.selectedOptionId == selectedOptionId }) {
+            null
+        } else {
+            CopFailureResponse(
+                reason = DonationCartFailureReason.DONATION_SELECTION_INVALID,
+                message = "Donation selection $selectedOptionId is not present in the cart.",
+            )
+        }
 
     private fun buildResponse(
         failureResponse: CopFailureResponse<DonationCartFailureReason>?,

@@ -6,6 +6,7 @@ import com.n8vd3v.lighttheworld.features.dailychallenge.calendar.ChallengeCalend
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.ChallengeProgressFailureReason
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.ChallengeProgressModule
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.CompletionReversalConfirmation
+import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderEvaluationInput
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderFailureReason
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderModule
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ReminderPreference
@@ -129,7 +130,7 @@ class DailyChallengeModulesTest {
     }
 
     @Test
-    fun reminderModuleSchedulesTenAmAndConditionallySuppressesSixPm() {
+    fun reminderModuleSchedulesBothRemindersBeforeTenAmWhenInWindowAndIncomplete() {
         val module = ChallengeReminderModule()
         val reminderPreference = ReminderPreference(
             remindersEnabled = true,
@@ -140,52 +141,167 @@ class DailyChallengeModulesTest {
             status = ChallengeCompletionStatus.INCOMPLETE,
             completedAt = null,
         )
-        val completedProgress = incompleteProgress.copy(
-            status = ChallengeCompletionStatus.COMPLETED,
-            completedAt = Instant.parse("2026-12-10T17:00:00Z"),
+        val response = module.evaluateReminderSchedule(
+            ChallengeReminderEvaluationInput(
+                reminderPreference = reminderPreference,
+                currentLocalDate = LocalDate.of(2026, 12, 10),
+                currentLocalTime = LocalTime.of(9, 30),
+                currentDayChallenge = challengeFor(LocalDate.of(2026, 12, 10)),
+                completionState = incompleteProgress,
+            ),
         )
-
-        val incompleteResponse = module.evaluateReminderSchedule(
-            reminderPreference = reminderPreference,
-            currentLocalDate = LocalDate.of(2026, 12, 10),
-            currentLocalTime = LocalTime.of(9, 30),
-            completionState = incompleteProgress,
-        )
-        assertNull(incompleteResponse.failureResponse)
+        assertNull(response.failureResponse)
         assertEquals(
             ReminderScheduleStatus.SCHEDULED,
-            incompleteResponse.reminderScheduleState.earlyReminder.status,
+            response.reminderScheduleState.earlyReminder.status,
         )
         assertEquals(
             ReminderScheduleStatus.SCHEDULED,
-            incompleteResponse.reminderScheduleState.laterReminder.status,
+            response.reminderScheduleState.laterReminder.status,
+        )
+    }
+
+    @Test
+    fun reminderModuleSchedulesOnlyLaterReminderBetweenTenAmAndSixPmWhenIncomplete() {
+        val module = ChallengeReminderModule()
+        val response = module.evaluateReminderSchedule(
+            ChallengeReminderEvaluationInput(
+                reminderPreference = ReminderPreference(
+                    remindersEnabled = true,
+                    notificationPermissionGranted = true,
+                ),
+                currentLocalDate = LocalDate.of(2026, 12, 10),
+                currentLocalTime = LocalTime.of(15, 0),
+                currentDayChallenge = challengeFor(LocalDate.of(2026, 12, 10)),
+                completionState = ChallengeProgress(
+                    challengeDate = LocalDate.of(2026, 12, 10),
+                    status = ChallengeCompletionStatus.INCOMPLETE,
+                    completedAt = null,
+                ),
+            ),
         )
 
-        val completedResponse = module.evaluateReminderSchedule(
-            reminderPreference = reminderPreference,
-            currentLocalDate = LocalDate.of(2026, 12, 10),
-            currentLocalTime = LocalTime.of(15, 0),
-            completionState = completedProgress,
+        assertNull(response.failureResponse)
+        assertEquals(
+            ReminderScheduleStatus.NOT_SCHEDULED,
+            response.reminderScheduleState.earlyReminder.status,
         )
         assertEquals(
-            ReminderScheduleStatus.SUPPRESSED,
-            completedResponse.reminderScheduleState.laterReminder.status,
+            ReminderScheduleStatus.SCHEDULED,
+            response.reminderScheduleState.laterReminder.status,
+        )
+    }
+
+    @Test
+    fun reminderModuleReturnsBothNotScheduledAtOrAfterSixPm() {
+        val module = ChallengeReminderModule()
+        val response = module.evaluateReminderSchedule(
+            ChallengeReminderEvaluationInput(
+                reminderPreference = ReminderPreference(
+                    remindersEnabled = true,
+                    notificationPermissionGranted = true,
+                ),
+                currentLocalDate = LocalDate.of(2026, 12, 10),
+                currentLocalTime = LocalTime.of(18, 0),
+                currentDayChallenge = challengeFor(LocalDate.of(2026, 12, 10)),
+                completionState = ChallengeProgress(
+                    challengeDate = LocalDate.of(2026, 12, 10),
+                    status = ChallengeCompletionStatus.INCOMPLETE,
+                    completedAt = null,
+                ),
+            ),
         )
 
-        val noPermissionResponse = module.evaluateReminderSchedule(
-            reminderPreference = reminderPreference.copy(notificationPermissionGranted = false),
-            currentLocalDate = LocalDate.of(2026, 12, 10),
-            currentLocalTime = LocalTime.of(8, 0),
-            completionState = incompleteProgress,
-        )
+        assertNull(response.failureResponse)
         assertEquals(
-            ChallengeReminderFailureReason.NOTIFICATION_PERMISSION_REQUIRED,
-            noPermissionResponse.failureResponse?.reason,
+            ReminderScheduleStatus.NOT_SCHEDULED,
+            response.reminderScheduleState.earlyReminder.status,
         )
         assertEquals(
             ReminderScheduleStatus.NOT_SCHEDULED,
-            noPermissionResponse.reminderScheduleState.earlyReminder.status,
+            response.reminderScheduleState.laterReminder.status,
         )
+    }
+
+    @Test
+    fun reminderModuleReturnsBothNotScheduledOutsideCampaignWindow() {
+        val module = ChallengeReminderModule()
+        val response = module.evaluateReminderSchedule(
+            ChallengeReminderEvaluationInput(
+                reminderPreference = ReminderPreference(
+                    remindersEnabled = true,
+                    notificationPermissionGranted = true,
+                ),
+                currentLocalDate = LocalDate.of(2026, 11, 30),
+                currentLocalTime = LocalTime.of(9, 0),
+                currentDayChallenge = null,
+                completionState = ChallengeProgress(
+                    challengeDate = LocalDate.of(2026, 11, 30),
+                    status = ChallengeCompletionStatus.INCOMPLETE,
+                    completedAt = null,
+                ),
+            ),
+        )
+
+        assertNull(response.failureResponse)
+        assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.earlyReminder.status)
+        assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.laterReminder.status)
+    }
+
+    @Test
+    fun reminderModuleReturnsFailureWhenInWindowChallengeContentCannotBeValidated() {
+        val module = ChallengeReminderModule()
+        val response = module.evaluateReminderSchedule(
+            ChallengeReminderEvaluationInput(
+                reminderPreference = ReminderPreference(
+                    remindersEnabled = true,
+                    notificationPermissionGranted = true,
+                ),
+                currentLocalDate = LocalDate.of(2026, 12, 10),
+                currentLocalTime = LocalTime.of(8, 0),
+                currentDayChallenge = null,
+                completionState = ChallengeProgress(
+                    challengeDate = LocalDate.of(2026, 12, 10),
+                    status = ChallengeCompletionStatus.INCOMPLETE,
+                    completedAt = null,
+                ),
+            ),
+        )
+
+        assertEquals(
+            ChallengeReminderFailureReason.CHALLENGE_CONTENT_UNAVAILABLE,
+            response.failureResponse?.reason,
+        )
+        assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.earlyReminder.status)
+        assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.laterReminder.status)
+    }
+
+    @Test
+    fun reminderModuleReturnsPermissionFailureAfterValidatedInWindowChallenge() {
+        val module = ChallengeReminderModule()
+        val response = module.evaluateReminderSchedule(
+            ChallengeReminderEvaluationInput(
+                reminderPreference = ReminderPreference(
+                    remindersEnabled = true,
+                    notificationPermissionGranted = false,
+                ),
+                currentLocalDate = LocalDate.of(2026, 12, 10),
+                currentLocalTime = LocalTime.of(8, 0),
+                currentDayChallenge = challengeFor(LocalDate.of(2026, 12, 10)),
+                completionState = ChallengeProgress(
+                    challengeDate = LocalDate.of(2026, 12, 10),
+                    status = ChallengeCompletionStatus.INCOMPLETE,
+                    completedAt = null,
+                ),
+            ),
+        )
+
+        assertEquals(
+            ChallengeReminderFailureReason.NOTIFICATION_PERMISSION_REQUIRED,
+            response.failureResponse?.reason,
+        )
+        assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.earlyReminder.status)
+        assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.laterReminder.status)
     }
 
     @Test
@@ -215,4 +331,11 @@ class DailyChallengeModulesTest {
             accepted.sharePayload?.completionMessage,
         )
     }
+
+    private fun challengeFor(date: LocalDate) = DailyChallenge(
+        date = date,
+        shortSummary = "Serve someone today",
+        detailDescription = "Stub challenge content for reminder evaluation.",
+        suggestions = listOf("Share light with one person."),
+    )
 }

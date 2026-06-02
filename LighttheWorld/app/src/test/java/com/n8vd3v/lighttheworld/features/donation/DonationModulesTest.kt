@@ -68,34 +68,34 @@ class DonationModulesTest {
     }
 
     @Test
-    fun cartModuleTreatsMissingUpdateAndRemoveTargetsAsNoOpStubBehavior() {
-        val logger = InMemoryStubModuleLogger()
-        val module = DonationCartModule(logger = logger)
+    fun cartModuleReturnsExplicitFailureForMissingUpdateTarget() {
+        val module = DonationCartModule()
         module.addSelection(selection("meals", "Provide meals", "15.00"))
 
         val updateMissing = module.updateSelection(
             selection("winter-kit", "Supply a winter kit", "20.00"),
         )
-        assertNull(updateMissing.failureResponse)
+
+        assertEquals(
+            DonationCartFailureReason.DONATION_SELECTION_INVALID,
+            updateMissing.failureResponse?.reason,
+        )
         assertEquals(1, updateMissing.donationCart.items.size)
         assertEquals("meals", updateMissing.donationCart.items.single().selectedOptionId)
+    }
+
+    @Test
+    fun cartModuleReturnsExplicitFailureForMissingRemoveTarget() {
+        val module = DonationCartModule()
+        module.addSelection(selection("meals", "Provide meals", "15.00"))
 
         val removeMissing = module.removeSelection("winter-kit")
-        assertNull(removeMissing.failureResponse)
+        assertEquals(
+            DonationCartFailureReason.DONATION_SELECTION_INVALID,
+            removeMissing.failureResponse?.reason,
+        )
         assertEquals(1, removeMissing.donationCart.items.size)
         assertEquals("meals", removeMissing.donationCart.items.single().selectedOptionId)
-        assertTrue(
-            logger.entries.any { entry ->
-                entry.action == "update_selection_missing_target_decision" &&
-                    entry.details["decision"] == "selection_update_no_op_target_missing"
-            },
-        )
-        assertTrue(
-            logger.entries.any { entry ->
-                entry.action == "remove_selection_missing_target_decision" &&
-                    entry.details["decision"] == "selection_remove_no_op_target_missing"
-            },
-        )
     }
 
     @Test
@@ -182,6 +182,37 @@ class DonationModulesTest {
             response.failureResponse?.reason,
         )
         assertEquals(DonationPaymentStatus.FAILED, response.paymentResult?.status)
+    }
+
+    @Test
+    fun checkoutModuleReturnsExplicitFailureForUnresolvedPaymentConfirmation() {
+        val response = DonationCheckoutModule(
+            stubOutcome = DonationCheckoutStubOutcome.PAYMENT_CONFIRMATION_UNRESOLVED,
+        ).submitDonationPayment(
+            donationCart = DonationCart(
+                items = listOf(selection("meals", "Provide meals", "15.00")),
+                totalAmount = BigDecimal("15.00"),
+            ),
+            donorIdentity = DonorIdentity(
+                donorName = "Jane Doe",
+                donorEmail = "jane@example.com",
+            ),
+            paymentDetails = PaymentDetails(
+                paymentMethodToken = "stub-card-token",
+                paymentMethodSummary = "Visa ending in 4242",
+            ),
+            receiptDeliverySelection = ReceiptDeliverySelection(ReceiptDeliveryMethod.EMAIL),
+            receiptDeliveryContactInformation = ReceiptDeliveryContactInformation(
+                emailAddress = "jane@example.com",
+            ),
+        )
+
+        assertEquals(
+            DonationCheckoutFailureReason.PAYMENT_CONFIRMATION_UNRESOLVED,
+            response.failureResponse?.reason,
+        )
+        assertEquals(DonationPaymentStatus.FAILED, response.paymentResult?.status)
+        assertNull(response.donationConfirmation)
     }
 
     private fun selection(

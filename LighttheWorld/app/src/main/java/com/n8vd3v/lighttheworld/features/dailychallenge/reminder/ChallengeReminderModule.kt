@@ -4,8 +4,10 @@ import com.n8vd3v.lighttheworld.cop.CopFailureResponse
 import com.n8vd3v.lighttheworld.cop.NoOpStubModuleLogger
 import com.n8vd3v.lighttheworld.cop.StubModuleLogger
 import com.n8vd3v.lighttheworld.cop.logDecision
+import com.n8vd3v.lighttheworld.features.dailychallenge.CampaignWindow
 import com.n8vd3v.lighttheworld.features.dailychallenge.ChallengeCompletionStatus
 import com.n8vd3v.lighttheworld.features.dailychallenge.ChallengeProgress
+import com.n8vd3v.lighttheworld.features.dailychallenge.DailyChallenge
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -18,23 +20,67 @@ class ChallengeReminderModule(
         currentLocalDate: LocalDate,
         currentLocalTime: LocalTime,
         completionState: ChallengeProgress,
+    ): ChallengeReminderResponse =
+        evaluateReminderSchedule(
+            ChallengeReminderEvaluationInput(
+                reminderPreference = reminderPreference,
+                currentLocalDate = currentLocalDate,
+                currentLocalTime = currentLocalTime,
+                currentDayChallenge = null,
+                completionState = completionState,
+            ),
+        )
+
+    fun evaluateReminderSchedule(
+        input: ChallengeReminderEvaluationInput,
     ): ChallengeReminderResponse {
         logger.logDecision(
             module = MODULE_NAME,
             action = "evaluate_reminder_schedule_input",
             details = mapOf(
-                "remindersEnabled" to reminderPreference.remindersEnabled,
-                "notificationPermissionGranted" to reminderPreference.notificationPermissionGranted,
-                "currentLocalDate" to currentLocalDate,
-                "currentLocalTime" to currentLocalTime,
-                "completionStatus" to completionState.status,
+                "remindersEnabled" to input.reminderPreference.remindersEnabled,
+                "notificationPermissionGranted" to input.reminderPreference.notificationPermissionGranted,
+                "campaignWindow" to input.campaignWindow,
+                "currentLocalDate" to input.currentLocalDate,
+                "currentLocalTime" to input.currentLocalTime,
+                "currentDayChallengeDate" to input.currentDayChallenge?.date,
+                "completionStatus" to input.completionState.status,
             ),
         )
 
-        if (!reminderPreference.remindersEnabled) {
+        if (!input.campaignWindow.includes(input.currentLocalDate)) {
             return buildResponse(
-                challengeDate = currentLocalDate,
-                currentLocalTime = currentLocalTime,
+                challengeDate = input.currentLocalDate,
+                currentLocalTime = input.currentLocalTime,
+                earlyStatus = ReminderScheduleStatus.NOT_SCHEDULED,
+                laterStatus = ReminderScheduleStatus.NOT_SCHEDULED,
+                failureResponse = null,
+                decision = "reminders_not_scheduled_out_of_window",
+            )
+        }
+
+        if (!hasValidatedCurrentDayChallenge(
+                currentLocalDate = input.currentLocalDate,
+                currentDayChallenge = input.currentDayChallenge,
+            )
+        ) {
+            return buildResponse(
+                challengeDate = input.currentLocalDate,
+                currentLocalTime = input.currentLocalTime,
+                earlyStatus = ReminderScheduleStatus.NOT_SCHEDULED,
+                laterStatus = ReminderScheduleStatus.NOT_SCHEDULED,
+                failureResponse = CopFailureResponse(
+                    reason = ChallengeReminderFailureReason.CHALLENGE_CONTENT_UNAVAILABLE,
+                    message = "Current-day challenge content could not be validated for reminder scheduling.",
+                ),
+                decision = "reminders_not_scheduled_challenge_content_unavailable",
+            )
+        }
+
+        if (!input.reminderPreference.remindersEnabled) {
+            return buildResponse(
+                challengeDate = input.currentLocalDate,
+                currentLocalTime = input.currentLocalTime,
                 earlyStatus = ReminderScheduleStatus.NOT_SCHEDULED,
                 laterStatus = ReminderScheduleStatus.NOT_SCHEDULED,
                 failureResponse = CopFailureResponse(
@@ -45,10 +91,10 @@ class ChallengeReminderModule(
             )
         }
 
-        if (!reminderPreference.notificationPermissionGranted) {
+        if (!input.reminderPreference.notificationPermissionGranted) {
             return buildResponse(
-                challengeDate = currentLocalDate,
-                currentLocalTime = currentLocalTime,
+                challengeDate = input.currentLocalDate,
+                currentLocalTime = input.currentLocalTime,
                 earlyStatus = ReminderScheduleStatus.NOT_SCHEDULED,
                 laterStatus = ReminderScheduleStatus.NOT_SCHEDULED,
                 failureResponse = CopFailureResponse(
@@ -59,26 +105,40 @@ class ChallengeReminderModule(
             )
         }
 
-        val laterStatus =
-            if (completionState.status == ChallengeCompletionStatus.COMPLETED) {
-                ReminderScheduleStatus.SUPPRESSED
-            } else {
+        val earlyStatus =
+            if (input.currentLocalTime.isBefore(EARLY_REMINDER_TIME)) {
                 ReminderScheduleStatus.SCHEDULED
+            } else {
+                ReminderScheduleStatus.NOT_SCHEDULED
+            }
+
+        val laterStatus =
+            if (input.currentLocalTime.isBefore(LATER_REMINDER_TIME) &&
+                input.completionState.status != ChallengeCompletionStatus.COMPLETED
+            ) {
+                ReminderScheduleStatus.SCHEDULED
+            } else {
+                ReminderScheduleStatus.NOT_SCHEDULED
             }
 
         return buildResponse(
-            challengeDate = currentLocalDate,
-            currentLocalTime = currentLocalTime,
-            earlyStatus = ReminderScheduleStatus.SCHEDULED,
+            challengeDate = input.currentLocalDate,
+            currentLocalTime = input.currentLocalTime,
+            earlyStatus = earlyStatus,
             laterStatus = laterStatus,
             failureResponse = null,
-            decision = if (laterStatus == ReminderScheduleStatus.SUPPRESSED) {
-                "later_reminder_suppressed_completed"
+            decision = if (laterStatus == ReminderScheduleStatus.SCHEDULED) {
+                "reminder_schedule_incomplete_before_six_pm"
             } else {
-                "both_reminders_scheduled"
+                "reminder_schedule_not_scheduled_by_time_or_completion"
             },
         )
     }
+
+    private fun hasValidatedCurrentDayChallenge(
+        currentLocalDate: LocalDate,
+        currentDayChallenge: DailyChallenge?,
+    ): Boolean = currentDayChallenge?.date == currentLocalDate
 
     private fun buildResponse(
         challengeDate: LocalDate,

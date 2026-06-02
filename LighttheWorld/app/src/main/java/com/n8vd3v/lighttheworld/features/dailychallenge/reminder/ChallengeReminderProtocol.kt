@@ -1,13 +1,16 @@
 package com.n8vd3v.lighttheworld.features.dailychallenge.reminder
 
 import com.n8vd3v.lighttheworld.cop.CopFailureResponse
+import com.n8vd3v.lighttheworld.features.dailychallenge.CampaignWindow
 import com.n8vd3v.lighttheworld.features.dailychallenge.ChallengeProgress
+import com.n8vd3v.lighttheworld.features.dailychallenge.DailyChallenge
 import java.time.LocalDate
 import java.time.LocalTime
 
 enum class ChallengeReminderFailureReason {
     NOTIFICATION_PERMISSION_REQUIRED,
     REMINDERS_DISABLED,
+    CHALLENGE_CONTENT_UNAVAILABLE,
 }
 
 enum class ReminderScheduleStatus {
@@ -46,3 +49,12 @@ interface ChallengeReminderProtocol {
         completionState: ChallengeProgress,
     ): ChallengeReminderResponse
 }
+
+data class ChallengeReminderEvaluationInput(
+    val reminderPreference: ReminderPreference,
+    val campaignWindow: CampaignWindow = CampaignWindow.LightTheWorldAnnual,
+    val currentLocalDate: LocalDate,
+    val currentLocalTime: LocalTime,
+    val currentDayChallenge: DailyChallenge?,
+    val completionState: ChallengeProgress,
+)
