@@ -37,7 +37,7 @@ Provide the ordered daily challenge content needed to browse challenge cards, vi
   - `date: date` - assigned challenge date.
   - `short summary: string` - front-of-card summary.
   - `detail description: string` - back-of-card description.
-  - `suggestions: collection` - optional suggestions for completing the challenge.
+  - `suggestions: collection` - required suggestions for completing the challenge.
 
 ---
 
@@ -67,4 +67,4 @@ Provide the ordered daily challenge content needed to browse challenge cards, vi
 ---
 
 ## 9. Open Questions
-- Are suggestions required for every challenge or optional for some challenge dates?
+- None at this time.

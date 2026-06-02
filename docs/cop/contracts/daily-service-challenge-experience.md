@@ -51,7 +51,7 @@ Define the behavior for presenting campaign daily challenges, showing challenge 
 - date: date — the calendar day assigned to the challenge.
 - short summary: string — brief front-of-card description.
 - detail description: string — fuller challenge explanation shown on the back of the card.
-- suggestions: collection — optional suggestions for how to accomplish the challenge.
+- suggestions: collection — required suggestions for how to accomplish the challenge.
 
 ### Challenge Progress
 - challenge date: date — the challenge being tracked.
@@ -192,5 +192,4 @@ Define the behavior for presenting campaign daily challenges, showing challenge 
 ---
 
 ## 12. Open Questions
-
-- Are suggestions required for every challenge or optional for some challenge dates?
+- None at this time.
