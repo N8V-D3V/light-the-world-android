@@ -161,7 +161,6 @@ class DailyServiceChallengeExperienceOrchestratorTest {
         assertEquals(LocalDate.of(2026, 12, 10), reminderProtocol.lastCurrentLocalDate)
         assertEquals(LocalTime.of(9, 15), reminderProtocol.lastCurrentLocalTime)
         assertSame(challenge, reminderProtocol.lastInput?.currentDayChallenge)
-        assertEquals(0, reminderProtocol.legacyShimCallCount)
         assertTrue(events.indexOf("calendar:getChallengeDetail") < events.indexOf("reminder:evaluateInput"))
         assertEquals(ReminderScheduleStatus.SCHEDULED, response.reminderScheduleState.earlyReminder.status)
     }
@@ -197,7 +196,6 @@ class DailyServiceChallengeExperienceOrchestratorTest {
         assertEquals(0, calendarProtocol.getChallengeDetailCallCount)
         assertEquals(LocalDate.of(2026, 11, 30), reminderProtocol.lastInput?.currentLocalDate)
         assertNull(reminderProtocol.lastInput?.currentDayChallenge)
-        assertEquals(0, reminderProtocol.legacyShimCallCount)
         assertNull(response.calendarFailureResponse)
         assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.earlyReminder.status)
         assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.laterReminder.status)
@@ -358,7 +356,6 @@ class DailyServiceChallengeExperienceOrchestratorTest {
         private val events: MutableList<String>? = null,
     ) : ChallengeReminderProtocol {
         var inputCallCount: Int = 0
-        var legacyShimCallCount: Int = 0
         var lastInput: ChallengeReminderEvaluationInput? = null
         var lastCurrentLocalDate: LocalDate? = null
         var lastCurrentLocalTime: LocalTime? = null
@@ -401,18 +398,6 @@ class DailyServiceChallengeExperienceOrchestratorTest {
                 ),
                 failureResponse = null,
             )
-        }
-
-        @Deprecated("Test-only guard against shim usage.")
-        @Suppress("DEPRECATION")
-        override fun evaluateReminderSchedule(
-            reminderPreference: ReminderPreference,
-            currentLocalDate: LocalDate,
-            currentLocalTime: LocalTime,
-            completionState: ChallengeProgress,
-        ): ChallengeReminderResponse {
-            legacyShimCallCount += 1
-            error("Deprecated reminder shim should not be used by the orchestrator.")
         }
     }
 }

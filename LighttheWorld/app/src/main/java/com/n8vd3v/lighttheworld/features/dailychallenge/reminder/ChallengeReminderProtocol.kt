@@ -53,23 +53,4 @@ interface ChallengeReminderProtocol {
     fun evaluateReminderSchedule(
         input: ChallengeReminderEvaluationInput,
     ): ChallengeReminderResponse
-
-    @Deprecated(
-        message = "Compatibility shim for pre-alignment callers. Use evaluateReminderSchedule(input).",
-    )
-    fun evaluateReminderSchedule(
-        reminderPreference: ReminderPreference,
-        currentLocalDate: LocalDate,
-        currentLocalTime: LocalTime,
-        completionState: ChallengeProgress,
-    ): ChallengeReminderResponse =
-        evaluateReminderSchedule(
-            ChallengeReminderEvaluationInput(
-                reminderPreference = reminderPreference,
-                currentLocalDate = currentLocalDate,
-                currentLocalTime = currentLocalTime,
-                currentDayChallenge = null,
-                completionState = completionState,
-            ),
-        )
 }

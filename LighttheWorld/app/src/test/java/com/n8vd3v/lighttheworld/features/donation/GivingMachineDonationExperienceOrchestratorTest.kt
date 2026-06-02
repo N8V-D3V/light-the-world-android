@@ -1,6 +1,7 @@
 package com.n8vd3v.lighttheworld.features.donation
 
 import com.n8vd3v.lighttheworld.cop.CopFailureResponse
+import com.n8vd3v.lighttheworld.cop.InMemoryStubModuleLogger
 import com.n8vd3v.lighttheworld.features.donation.cart.DonationCartFailureReason
 import com.n8vd3v.lighttheworld.features.donation.cart.DonationCartProtocol
 import com.n8vd3v.lighttheworld.features.donation.cart.DonationCartResponse
@@ -76,6 +77,65 @@ class GivingMachineDonationExperienceOrchestratorTest {
         )
         assertEquals(0, cartProtocol.addSelectionCallCount)
         assertEquals(1, cartProtocol.getCurrentCartCallCount)
+    }
+
+    @Test
+    fun updateDonationSelectionSurfacesExplicitFailureForMissingCartTarget() {
+        val logger = InMemoryStubModuleLogger()
+        val orchestrator = GivingMachineDonationExperienceOrchestrator(
+            donationCatalogProtocol = DonationCatalogModule(),
+            donationCartProtocol = DonationCartModule(),
+            donationCheckoutProtocol = DonationCheckoutModule(),
+            donationReceiptProtocol = DonationReceiptModule(),
+            logger = logger,
+        )
+
+        val response = orchestrator.updateDonationSelection(
+            currentCatalogState = CatalogAvailabilityState.AVAILABLE,
+            selectionRequest = DonationSelectionRequest(
+                selectedOptionId = "meals",
+                amount = BigDecimal("15.00"),
+                quantity = null,
+            ),
+        )
+
+        assertEquals(
+            DonationCartFailureReason.DONATION_SELECTION_INVALID,
+            response.cartFailureResponse?.reason,
+        )
+        assertTrue(
+            logger.entries.any { entry ->
+                entry.action == "mutate_donation_cart_output" &&
+                    entry.details["decision"] == "selection_update_rejected_cart_failure" &&
+                    entry.details["failureReason"] == DonationCartFailureReason.DONATION_SELECTION_INVALID.name
+            },
+        )
+    }
+
+    @Test
+    fun removeDonationSelectionSurfacesExplicitFailureForMissingCartTarget() {
+        val logger = InMemoryStubModuleLogger()
+        val orchestrator = GivingMachineDonationExperienceOrchestrator(
+            donationCatalogProtocol = DonationCatalogModule(),
+            donationCartProtocol = DonationCartModule(),
+            donationCheckoutProtocol = DonationCheckoutModule(),
+            donationReceiptProtocol = DonationReceiptModule(),
+            logger = logger,
+        )
+
+        val response = orchestrator.removeDonationSelection("meals")
+
+        assertEquals(
+            DonationCartFailureReason.DONATION_SELECTION_INVALID,
+            response.cartFailureResponse?.reason,
+        )
+        assertTrue(
+            logger.entries.any { entry ->
+                entry.action == "remove_donation_selection_output" &&
+                    entry.details["decision"] == "selection_remove_rejected_cart_failure" &&
+                    entry.details["failureReason"] == DonationCartFailureReason.DONATION_SELECTION_INVALID.name
+            },
+        )
     }
 
     @Test

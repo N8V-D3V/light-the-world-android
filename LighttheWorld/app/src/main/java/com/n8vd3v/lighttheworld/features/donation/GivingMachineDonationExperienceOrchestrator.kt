@@ -137,7 +137,8 @@ class GivingMachineDonationExperienceOrchestrator(
             selectionRequest = selectionRequest,
             mutation = { selection -> donationCartProtocol.addSelection(selection) },
             successDecision = "selection_added_to_cart",
-            failureDecision = "selection_add_rejected_catalog_failure",
+            catalogFailureDecision = "selection_add_rejected_catalog_failure",
+            cartFailureDecision = "selection_add_rejected_cart_failure",
         )
     }
 
@@ -160,7 +161,8 @@ class GivingMachineDonationExperienceOrchestrator(
             selectionRequest = selectionRequest,
             mutation = { selection -> donationCartProtocol.updateSelection(selection) },
             successDecision = "selection_updated_in_cart",
-            failureDecision = "selection_update_rejected_catalog_failure",
+            catalogFailureDecision = "selection_update_rejected_catalog_failure",
+            cartFailureDecision = "selection_update_rejected_cart_failure",
         )
     }
 
@@ -176,9 +178,9 @@ class GivingMachineDonationExperienceOrchestrator(
             action = "remove_donation_selection_output",
             details = mapOf(
                 "decision" to if (response.failureResponse == null) {
-                    "selection_removed_or_no_op"
+                    "selection_removed"
                 } else {
-                    "selection_remove_rejected"
+                    "selection_remove_rejected_cart_failure"
                 },
                 "itemCount" to response.donationCart.items.size,
                 "failureReason" to response.failureResponse?.reason,
@@ -315,7 +317,8 @@ class GivingMachineDonationExperienceOrchestrator(
         selectionRequest: DonationSelectionRequest,
         mutation: (DonationSelection) -> com.n8vd3v.lighttheworld.features.donation.cart.DonationCartResponse,
         successDecision: String,
-        failureDecision: String,
+        catalogFailureDecision: String,
+        cartFailureDecision: String,
     ): DonationCartExperienceResponse {
         val optionDetailResponse = donationCatalogProtocol.getDonationOptionDetail(
             currentCatalogState = currentCatalogState,
@@ -327,7 +330,7 @@ class GivingMachineDonationExperienceOrchestrator(
                 module = MODULE_NAME,
                 action = "mutate_donation_cart_output",
                 details = mapOf(
-                    "decision" to failureDecision,
+                    "decision" to catalogFailureDecision,
                     "failureReason" to optionDetailResponse.failureResponse?.reason,
                     "itemCount" to currentCartResponse.donationCart.items.size,
                 ),
@@ -352,7 +355,11 @@ class GivingMachineDonationExperienceOrchestrator(
             module = MODULE_NAME,
             action = "mutate_donation_cart_output",
             details = mapOf(
-                "decision" to successDecision,
+                "decision" to if (cartResponse.failureResponse == null) {
+                    successDecision
+                } else {
+                    cartFailureDecision
+                },
                 "selectedDonationOptionId" to selection.selectedOptionId,
                 "itemCount" to cartResponse.donationCart.items.size,
                 "failureReason" to cartResponse.failureResponse?.reason,
