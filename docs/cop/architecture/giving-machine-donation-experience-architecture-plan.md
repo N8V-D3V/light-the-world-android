@@ -59,6 +59,7 @@ This plan keeps catalog sourcing, payment submission, and receipt delivery abstr
 ## 6. Orchestration Boundaries
 - `GivingMachineDonationExperienceOrchestrator` coordinates `DonationCatalogProtocol`, `DonationCartProtocol`, `DonationCheckoutProtocol`, and `DonationReceiptProtocol`.
 - `GivingMachineDonationExperienceOrchestrator` must not embed catalog retrieval implementation, cart update rules, payment-processing logic, or receipt-delivery implementation logic.
+- `GivingMachineDonationExperienceOrchestrator` must treat update and removal requests targeting items not present in the current cart as explicit `DONATION_SELECTION_INVALID` failures.
 - `GivingMachineDonationExperienceOrchestrator` must stop checkout progression when the cart is empty or required donor, payment, or receipt contact inputs are missing or invalid.
 - `GivingMachineDonationExperienceOrchestrator` must invoke `DonationReceiptProtocol` only after `DonationCheckoutProtocol` returns a successful donation confirmation.
 - `GivingMachineDonationExperienceOrchestrator` must preserve a successful donation result even when receipt delivery later returns a failure state.
@@ -67,7 +68,7 @@ This plan keeps catalog sourcing, payment submission, and receipt delivery abstr
 
 ## 7. Data Flow
 1. Donation option list and detail requests enter `DonationCatalogProtocol` to return available options or explicit catalog failures.
-2. User cart update requests and donation selections enter `DonationCartProtocol` to return updated cart state and donation selection summary.
+2. User cart update requests and donation selections enter `DonationCartProtocol` to return updated cart state and donation selection summary, or an explicit `DONATION_SELECTION_INVALID` failure when an update or removal targets an item not present in the current cart.
 3. Before checkout, the current cart summary is returned to the user for review through the experience boundary.
 4. Donation cart contents, donor identity, payment details, receipt delivery selection, and receipt delivery contact information enter `DonationCheckoutProtocol`.
 5. `DonationCheckoutProtocol` returns either an explicit failed payment result or a successful donation confirmation containing the full contract-defined confirmation payload: confirmation identifier, donation timestamp, donated items, line-item amounts, subtotal, tax if any, donor-applied fees if any, total charged, donated amount, payment method summary, selected option summary, receipt delivery method, and receipt delivery status.
@@ -82,7 +83,7 @@ This plan keeps catalog sourcing, payment submission, and receipt delivery abstr
   - Verify the feature does not claim donation success until payment completion is confirmed.
 - Protocol conformance tests:
   - Verify `DonationCatalogModule` returns only available options and explicit failures when catalog data is unavailable or an option is unavailable or missing.
-  - Verify `DonationCartModule` allows add, update, and remove actions across multiple items and rejects empty-cart checkout.
+  - Verify `DonationCartModule` allows add, update, and remove actions across multiple items, rejects update and remove requests for missing cart targets with `DONATION_SELECTION_INVALID`, and rejects empty-cart checkout.
   - Verify `DonationCheckoutModule` enforces donor identity, payment details, and phone-number requirements for text receipt delivery.
   - Verify `DonationReceiptModule` returns explicit receipt delivery status and preserves donation success when delivery fails.
 - Orchestration flow tests:
@@ -98,6 +99,8 @@ This plan keeps catalog sourcing, payment submission, and receipt delivery abstr
   - Guardrail: validate donation option availability at each protocol boundary where the contract allows rejection and return explicit failures when an option is no longer available.
 - Risk: cart summary logic and checkout confirmation logic can drift and produce inconsistent totals.
   - Guardrail: keep cart-summary ownership in `DonationCartModule` and require checkout to consume the cart output rather than re-deriving a different selection model.
+- Risk: missing-target cart mutations can be treated as successful no-op outcomes and hide stale UI state or orchestration defects.
+  - Guardrail: require `DonationCartProtocol` and `GivingMachineDonationExperienceOrchestrator` to surface missing update and removal targets as explicit `DONATION_SELECTION_INVALID` failures.
 - Risk: payment success and receipt delivery success can be incorrectly treated as the same state.
   - Guardrail: keep donation success inside `DonationCheckoutModule` and keep receipt delivery state inside `DonationReceiptModule`.
 - Risk: receipt contact requirements can be applied inconsistently across email and text selections.

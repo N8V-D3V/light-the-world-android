@@ -23,6 +23,7 @@ Define the behavior for presenting campaign daily challenges, showing challenge 
 - campaign window: date range — annual challenge schedule beginning on December 1 and ending on December 25.
 - selected challenge date: date — the challenge the user opens or interacts with.
 - current date: date — the date used to determine challenge completion eligibility.
+- current time: time — the local time used to determine reminder scheduling state.
 - completion request: event — user action requesting that a challenge be marked complete.
 - completion reversal request: event — user action requesting that a completed challenge be returned to incomplete status.
 - completion reversal confirmation: event — user confirmation approving or declining the reversal request.
@@ -63,8 +64,11 @@ Define the behavior for presenting campaign daily challenges, showing challenge 
 - notification permission granted: boolean — whether delivery permission exists.
 
 ### Reminder Schedule
+- evaluated date: date — the current local date evaluated for reminder scheduling.
 - early reminder local time: time — `10:00 AM`.
 - later reminder local time: time — `6:00 PM`.
+- early reminder state: enum — `scheduled` or `not_scheduled`.
+- later reminder state: enum — `scheduled` or `not_scheduled`.
 
 ### Share Content
 - challenge date: date — the completed challenge being shared.
@@ -85,9 +89,14 @@ Define the behavior for presenting campaign daily challenges, showing challenge 
 8. When the user requests to reverse completion for a completed challenge, the system must prompt the user to confirm that reversal before changing the completion state.
 9. When the user confirms a valid completion reversal request, the system must return the challenge to incomplete status.
 10. When the user requests to share a completed challenge, the system must provide share content indicating that the challenge was completed through the device's standard share flow.
-11. When notification permission is granted and reminders are enabled, the system must schedule one daily reminder for 10:00 AM local time describing the day's challenge.
-12. When notification permission is granted and reminders are enabled, the system must schedule one later daily reminder for 6:00 PM local time only if that day's challenge has not yet been completed.
-13. The system must determine challenge completion eligibility and reminder scheduling using the user's current local date and local time.
+11. When reminder schedule evaluation occurs for a current local date outside the campaign window, the system must return a reminder schedule state for that date with both reminders marked `not_scheduled`.
+12. The system must validate that the current local date maps to authoritative challenge content in the challenge calendar before reminder scheduling can succeed for that date.
+13. When notification permission is granted, reminders are enabled, the current local date is inside the campaign window, and the current local time is before `10:00 AM`, the system must mark the `10:00 AM` reminder as `scheduled` for that date.
+14. When notification permission is granted, reminders are enabled, the current local date is inside the campaign window, and the current local time is `10:00 AM` or later, the system must mark the `10:00 AM` reminder as `not_scheduled` for that date.
+15. When notification permission is granted, reminders are enabled, the current local date is inside the campaign window, the current local time is before `6:00 PM`, and that day's challenge is incomplete, the system must mark the `6:00 PM` reminder as `scheduled` for that date.
+16. When the current local time is `6:00 PM` or later, the system must mark the `6:00 PM` reminder as `not_scheduled` for that date.
+17. When that day's challenge is already completed, the system must mark the `6:00 PM` reminder as `not_scheduled` for that date.
+18. The system must determine challenge completion eligibility and reminder scheduling using the user's current local date and local time.
 
 ---
 
@@ -111,6 +120,9 @@ Define the behavior for presenting campaign daily challenges, showing challenge 
 - Condition: reminders are enabled but notification permission is not granted
   - System must: report that reminders cannot be scheduled until permission is granted
 
+- Condition: the current local date is inside the campaign window but authoritative challenge content for that date is missing or unavailable during reminder evaluation
+  - System must: return a failure response and must not schedule reminders for that date
+
 - Condition: a later reminder is due after the challenge has already been completed
   - System must: suppress the later reminder for that challenge date
 
@@ -125,6 +137,10 @@ Define the behavior for presenting campaign daily challenges, showing challenge 
 - The user completes a challenge after its scheduled day has passed.
 - The user enables reminders after the campaign has already started.
 - The user disables reminders after reminders were previously scheduled.
+- Reminder schedule evaluation occurs before December 1 or after December 25.
+- The user completes the current day's challenge before `10:00 AM`.
+- Reminder schedule evaluation occurs between `10:00 AM` and `6:00 PM`.
+- Reminder schedule evaluation occurs after `6:00 PM`.
 - The user has no recorded progress for any challenge.
 - The user marks a challenge complete by mistake and immediately reverses it.
 
@@ -135,6 +151,8 @@ Define the behavior for presenting campaign daily challenges, showing challenge 
 - Must not introduce challenge behavior outside this contract.
 - Must use an annual challenge calendar window from December 1 through December 25.
 - Must determine challenge availability and reminder scheduling using the user's current local date and local time.
+- Must return both reminders as `not_scheduled` when the current local date is outside the campaign window.
+- Must validate current-day challenge content through the challenge calendar before reminder scheduling can succeed.
 - Must not allow completion before the challenge date.
 - Must allow future challenge browsing.
 - Must treat challenge completion as user-specific state.
@@ -186,8 +204,11 @@ Define the behavior for presenting campaign daily challenges, showing challenge 
 - [ ] Users can reverse a completed challenge back to incomplete only after a confirmation prompt.
 - [ ] Users can share a completed challenge through the app.
 - [ ] Users can enable daily reminders when notification permission is granted.
-- [ ] The system schedules a 10:00 AM local-time reminder for the day's challenge when reminders are enabled.
-- [ ] The system sends or keeps scheduled a 6:00 PM local-time reminder only when the day's challenge remains incomplete.
+- [ ] Reminder evaluation outside the December 1 through December 25 campaign window returns both reminders as `not_scheduled`.
+- [ ] Reminder scheduling succeeds only after the current day's challenge content is validated through the challenge calendar.
+- [ ] Before `10:00 AM`, the `10:00 AM` reminder is `scheduled` and the `6:00 PM` reminder is `scheduled` only when the day's challenge remains incomplete.
+- [ ] Between `10:00 AM` and `6:00 PM`, the `10:00 AM` reminder is `not_scheduled` and the `6:00 PM` reminder is `scheduled` only when the day's challenge remains incomplete.
+- [ ] After `6:00 PM`, both reminders are `not_scheduled` for that date.
 
 ---
 

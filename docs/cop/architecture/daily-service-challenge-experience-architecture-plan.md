@@ -33,7 +33,7 @@ This plan keeps challenge content source replacement isolated behind the calenda
 - `DailyServiceChallengeExperienceModule` - feature boundary for user-visible challenge card browsing, detail access, completion actions, reminder preference actions, and share actions.
 - `ChallengeCalendarContentModule` - fulfills `ChallengeCalendarProtocol` and owns ordered challenge card retrieval and challenge detail retrieval for the December 1 through December 25 campaign window.
 - `ChallengeProgressModule` - fulfills `ChallengeProgressProtocol` and owns user-specific completion eligibility, completion state, completion updates, and completion reversal prompt handling.
-- `ChallengeReminderModule` - fulfills `ChallengeReminderProtocol` and owns reminder scheduling and suppression decisions using current local date, current local time, permission state, reminder preference, and current-day completion state.
+- `ChallengeReminderModule` - fulfills `ChallengeReminderProtocol` and owns reminder scheduling and suppression decisions using current local date, current local time, campaign window, validated current-day challenge content, permission state, reminder preference, and current-day completion state.
 - `ChallengeShareModule` - fulfills `ChallengeShareProtocol` and owns completed-challenge share payload generation for the standard device share flow.
 
 ---
@@ -50,7 +50,7 @@ This plan keeps challenge content source replacement isolated behind the calenda
 - `DailyServiceChallengeExperienceModule` depends on `ChallengeCalendarProtocol`, `ChallengeProgressProtocol`, `ChallengeReminderProtocol`, and `ChallengeShareProtocol`.
 - `ChallengeCalendarContentModule` must not depend on challenge progress, reminders, or sharing behavior.
 - `ChallengeProgressModule` depends on challenge date and current local date inputs only and must not depend on how challenge content is stored or retrieved.
-- `ChallengeReminderModule` depends on reminder preference, notification permission, current local date, current local time, and current-day completion state supplied through the experience flow.
+- `ChallengeReminderModule` depends on reminder preference, notification permission, campaign window, current local date, current local time, validated current-day challenge content, and current-day completion state supplied through the experience flow.
 - `ChallengeShareModule` depends on completed challenge summary, completion state, challenge date, and app link supplied through the experience flow.
 
 ---
@@ -61,6 +61,8 @@ This plan keeps challenge content source replacement isolated behind the calenda
 - `DailyServiceChallengeExperienceOrchestrator` must not embed challenge source parsing, progress persistence, reminder scheduling implementation, or share message formatting logic.
 - `DailyServiceChallengeExperienceOrchestrator` must request reversal confirmation before invoking the state change that returns a completed challenge to incomplete.
 - `DailyServiceChallengeExperienceOrchestrator` must request share payload generation only for a challenge whose completion state is completed.
+- `DailyServiceChallengeExperienceOrchestrator` must validate the current local date against the campaign window before reminder evaluation, and it must obtain current-day challenge content through `ChallengeCalendarProtocol` before invoking `ChallengeReminderProtocol` for any in-window reminder scheduling decision.
+- `DailyServiceChallengeExperienceOrchestrator` must pass out-of-window reminder evaluations into `ChallengeReminderProtocol` without first requesting current-day challenge content from `ChallengeCalendarProtocol`.
 
 ---
 
@@ -69,8 +71,11 @@ This plan keeps challenge content source replacement isolated behind the calenda
 2. Challenge date and current local date enter `ChallengeProgressProtocol` to return completion eligibility and current completion state.
 3. Completion requests enter `ChallengeProgressProtocol` to return updated completed state or `COMPLETION_NOT_YET_ALLOWED`.
 4. Completion reversal requests enter `ChallengeProgressProtocol` to return a reversal confirmation prompt, and confirmed reversals return updated incomplete state while declined reversals preserve completed state.
-5. Reminder preference, notification permission, current local date, current local time, and current-day completion state enter `ChallengeReminderProtocol` to return early-reminder and later-reminder scheduling or suppression state.
-6. Completed challenge date, completed challenge summary, completion state, and app link enter `ChallengeShareProtocol` to return share payload content or an explicit share failure response.
+5. For reminder evaluation, the experience flow first checks whether the current local date is inside the campaign window.
+6. When the current local date is outside the campaign window, reminder preference, notification permission, campaign window, current local date, current local time, no current-day challenge content, and current-day completion state enter `ChallengeReminderProtocol` to return both reminders as `not_scheduled`.
+7. When the current local date is inside the campaign window, that date enters `ChallengeCalendarProtocol` to validate that authoritative challenge content exists for the day before reminder scheduling can succeed.
+8. Reminder preference, notification permission, campaign window, current local date, current local time, validated current-day challenge content, and current-day completion state enter `ChallengeReminderProtocol` to return early-reminder and later-reminder scheduling or suppression state.
+9. Completed challenge date, completed challenge summary, completion state, and app link enter `ChallengeShareProtocol` to return share payload content or an explicit share failure response.
 
 ---
 
@@ -81,11 +86,14 @@ This plan keeps challenge content source replacement isolated behind the calenda
 - Protocol conformance tests:
   - Verify `ChallengeCalendarContentModule` returns ordered content for the full campaign window and explicit failures for missing content.
   - Verify `ChallengeProgressModule` returns only approved states, prompts, and failure reasons.
-  - Verify `ChallengeReminderModule` returns 10:00 AM and conditional 6:00 PM scheduling behavior using local date and local time inputs.
+  - Verify `ChallengeReminderModule` returns `not_scheduled` for both reminders outside the campaign window.
+  - Verify `ChallengeReminderModule` returns time-dependent `10:00 AM` and conditional `6:00 PM` schedule-state behavior before `10:00 AM`, between `10:00 AM` and `6:00 PM`, and after `6:00 PM`.
+  - Verify `ChallengeReminderModule` returns an explicit failure when in-window challenge content cannot be validated.
   - Verify `ChallengeShareModule` returns share payload only for completed challenges.
 - Orchestration flow tests:
   - Verify challenge detail viewing combines content and progress state without bypassing protocols.
   - Verify enabling reminders and completing the day's challenge affects later reminder suppression through the approved orchestration path.
+  - Verify reminder evaluation validates current-day challenge content through `ChallengeCalendarProtocol` before `ChallengeReminderProtocol` is invoked for in-window dates.
 - Failure path tests:
   - Verify missing challenge content, early completion requests, reversal requests for incomplete challenges, declined reversal confirmation, missing notification permission, unavailable challenge calendar data, and share requests for incomplete challenges.
 
@@ -100,6 +108,8 @@ This plan keeps challenge content source replacement isolated behind the calenda
   - Guardrail: keep any one-time source-to-contract mapping inside `ChallengeCalendarContentModule` before content crosses `ChallengeCalendarProtocol`.
 - Risk: completion eligibility and reminder timing could disagree if they evaluate different local dates or times.
   - Guardrail: require the experience flow to pass explicit current local date and current local time inputs into each protocol evaluation.
+- Risk: reminder scheduling could succeed for an in-window date whose challenge content has not been validated through the calendar boundary.
+  - Guardrail: require the orchestrator to obtain current-day challenge content through `ChallengeCalendarProtocol` before invoking `ChallengeReminderProtocol` for in-window scheduling.
 - Risk: reminder behavior could bypass progress state and send a later reminder after the challenge is already completed.
   - Guardrail: require `ChallengeReminderProtocol` evaluations to use current-day completion state from `ChallengeProgressProtocol` results.
 - Risk: share behavior could be triggered for incomplete challenges.

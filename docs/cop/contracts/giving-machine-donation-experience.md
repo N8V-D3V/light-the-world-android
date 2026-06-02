@@ -88,15 +88,16 @@ Define the behavior for presenting Giving Machine donation options and completin
 2. The system must allow the user to inspect the details of a donation option before donating.
 3. The system must allow the user to add multiple donation selections to a cart before checkout.
 4. The system must allow the user to update the cart by changing or removing selected donation items before payment submission.
-5. The system must present a clear summary of the donation cart and total amount before payment submission.
-6. The system must require donor name and donor email before allowing payment submission.
-7. The system must require payment information before allowing payment submission.
-8. The system must allow the user to choose receipt delivery by email, text message, or both before completing donation payment.
-9. When receipt delivery by text message is selected, the system must require a phone number before allowing payment submission.
-10. The system must allow the user to submit payment and complete the donation inside the app.
-11. When payment succeeds, the system must mark the donation attempt as succeeded and return a donation confirmation.
-12. The donation confirmation must identify the successful donation, the charged amount, and the donation receipt details defined in this contract.
-13. When receipt delivery is requested for a successful donation, the system must attempt to send the receipt using the selected delivery method or methods.
+5. When the user requests a cart change or removal for a donation item that is not present in the cart, the system must reject the request and return an explicit failure response indicating `DONATION_SELECTION_INVALID`.
+6. The system must present a clear summary of the donation cart and total amount before payment submission.
+7. The system must require donor name and donor email before allowing payment submission.
+8. The system must require payment information before allowing payment submission.
+9. The system must allow the user to choose receipt delivery by email, text message, or both before completing donation payment.
+10. When receipt delivery by text message is selected, the system must require a phone number before allowing payment submission.
+11. The system must allow the user to submit payment and complete the donation inside the app.
+12. When payment succeeds, the system must mark the donation attempt as succeeded and return a donation confirmation.
+13. The donation confirmation must identify the successful donation, the charged amount, and the donation receipt details defined in this contract.
+14. When receipt delivery is requested for a successful donation, the system must attempt to send the receipt using the selected delivery method or methods.
 
 ---
 
@@ -107,6 +108,9 @@ Define the behavior for presenting Giving Machine donation options and completin
 
 - Condition: selected donation option is unavailable at the time of donation
   - System must: reject the selection and require the user to choose an available option
+
+- Condition: a cart update or removal request targets a donation item that is not present in the current cart
+  - System must: reject the request and return an explicit failure response indicating `DONATION_SELECTION_INVALID`
 
 - Condition: the cart contains no donation items at the time of payment submission
   - System must: reject payment submission and return an explicit failure response
@@ -147,6 +151,7 @@ Define the behavior for presenting Giving Machine donation options and completin
 - Must not claim a donation succeeded unless payment completion is confirmed.
 - Must not fabricate donation catalog entries when catalog data is unavailable.
 - Must support a cart containing multiple donation items in a single checkout flow.
+- Must not treat a missing cart update or removal target as a successful no-op.
 - Must complete the donation payment flow inside the app.
 - Must represent payment failures explicitly.
 - Must require donor name, donor email, and payment information before payment submission.
@@ -193,6 +198,7 @@ Define the behavior for presenting Giving Machine donation options and completin
 - [ ] Users can view available Giving Machine donation options in the app.
 - [ ] Users can inspect donation option details before donating.
 - [ ] Users can add multiple donation options to a cart before checkout.
+- [ ] Cart update or removal requests for items not present in the cart return an explicit `DONATION_SELECTION_INVALID` failure response.
 - [ ] Users can review a cart summary and total before submitting payment.
 - [ ] Users must provide donor name and donor email before submitting payment.
 - [ ] Users can choose receipt delivery by email, text message, or both.

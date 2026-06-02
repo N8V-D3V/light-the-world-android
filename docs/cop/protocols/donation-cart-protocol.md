@@ -46,8 +46,9 @@ Manage a multi-item donation cart, including adding items, removing items, updat
 ## 6. Behavior Requirements
 1. Must allow multiple donation selections to exist in the cart at the same time.
 2. Must allow selected donation items to be added, updated, and removed before payment submission.
-3. Must provide a cart summary including selected items and total amount.
-4. Must reject checkout when the cart contains no donation items.
+3. Must reject update and remove requests that target donation items not present in the current cart state.
+4. Must provide a cart summary including selected items and total amount.
+5. Must reject checkout when the cart contains no donation items.
 
 ---
 
