@@ -16,7 +16,6 @@ enum class ChallengeReminderFailureReason {
 enum class ReminderScheduleStatus {
     SCHEDULED,
     NOT_SCHEDULED,
-    SUPPRESSED,
 }
 
 data class ReminderPreference(
@@ -36,20 +35,6 @@ data class ReminderScheduleState(
     val laterReminder: ReminderDecision,
 )
 
-data class ChallengeReminderResponse(
-    val reminderScheduleState: ReminderScheduleState,
-    val failureResponse: CopFailureResponse<ChallengeReminderFailureReason>? = null,
-)
-
-interface ChallengeReminderProtocol {
-    fun evaluateReminderSchedule(
-        reminderPreference: ReminderPreference,
-        currentLocalDate: LocalDate,
-        currentLocalTime: LocalTime,
-        completionState: ChallengeProgress,
-    ): ChallengeReminderResponse
-}
-
 data class ChallengeReminderEvaluationInput(
     val reminderPreference: ReminderPreference,
     val campaignWindow: CampaignWindow = CampaignWindow.LightTheWorldAnnual,
@@ -58,3 +43,33 @@ data class ChallengeReminderEvaluationInput(
     val currentDayChallenge: DailyChallenge?,
     val completionState: ChallengeProgress,
 )
+
+data class ChallengeReminderResponse(
+    val reminderScheduleState: ReminderScheduleState,
+    val failureResponse: CopFailureResponse<ChallengeReminderFailureReason>? = null,
+)
+
+interface ChallengeReminderProtocol {
+    fun evaluateReminderSchedule(
+        input: ChallengeReminderEvaluationInput,
+    ): ChallengeReminderResponse
+
+    @Deprecated(
+        message = "Compatibility shim for pre-alignment callers. Use evaluateReminderSchedule(input).",
+    )
+    fun evaluateReminderSchedule(
+        reminderPreference: ReminderPreference,
+        currentLocalDate: LocalDate,
+        currentLocalTime: LocalTime,
+        completionState: ChallengeProgress,
+    ): ChallengeReminderResponse =
+        evaluateReminderSchedule(
+            ChallengeReminderEvaluationInput(
+                reminderPreference = reminderPreference,
+                currentLocalDate = currentLocalDate,
+                currentLocalTime = currentLocalTime,
+                currentDayChallenge = null,
+                completionState = completionState,
+            ),
+        )
+}

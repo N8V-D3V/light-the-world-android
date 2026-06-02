@@ -12,6 +12,7 @@ import com.n8vd3v.lighttheworld.features.dailychallenge.progress.CompletionEligi
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.CompletionReversalConfirmation
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.CompletionReversalPrompt
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderFailureReason
+import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderEvaluationInput
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderProtocol
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ReminderPreference
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ReminderScheduleState
@@ -54,6 +55,7 @@ data class DailyChallengeReminderEvaluationResponse(
     val completionState: ChallengeProgress,
     val completionEligibility: CompletionEligibility,
     val reminderScheduleState: ReminderScheduleState,
+    val calendarFailureResponse: CopFailureResponse<ChallengeCalendarFailureReason>? = null,
     val progressFailureResponse: CopFailureResponse<ChallengeProgressFailureReason>? = null,
     val reminderFailureResponse: CopFailureResponse<ChallengeReminderFailureReason>? = null,
 )
@@ -343,6 +345,7 @@ class DailyServiceChallengeExperienceOrchestrator(
         reminderPreference: ReminderPreference,
         currentLocalDate: LocalDate,
         currentLocalTime: LocalTime,
+        campaignWindow: CampaignWindow = CampaignWindow.LightTheWorldAnnual,
     ): DailyChallengeReminderEvaluationResponse {
         logger.logDecision(
             module = MODULE_NAME,
@@ -350,6 +353,7 @@ class DailyServiceChallengeExperienceOrchestrator(
             details = mapOf(
                 "remindersEnabled" to reminderPreference.remindersEnabled,
                 "notificationPermissionGranted" to reminderPreference.notificationPermissionGranted,
+                "campaignWindow" to campaignWindow,
                 "currentLocalDate" to currentLocalDate,
                 "currentLocalTime" to currentLocalTime,
             ),
@@ -359,11 +363,48 @@ class DailyServiceChallengeExperienceOrchestrator(
             challengeDate = currentLocalDate,
             currentLocalDate = currentLocalDate,
         )
+        val currentDayChallengeResult =
+            if (campaignWindow.includes(currentLocalDate)) {
+                challengeCalendarProtocol.getChallengeDetail(
+                    currentLocalDate = currentLocalDate,
+                    campaignWindow = campaignWindow,
+                    selectedChallengeDate = currentLocalDate,
+                )
+            } else {
+                null
+            }
+
+        if (currentDayChallengeResult?.failureResponse != null) {
+            logger.logDecision(
+                module = MODULE_NAME,
+                action = "evaluate_reminder_schedule_output",
+                details = mapOf(
+                    "decision" to "reminder_evaluation_rejected_calendar_failure",
+                    "progressStatus" to progressResponse.completionState.status,
+                    "failureReason" to currentDayChallengeResult.failureResponse.reason,
+                ),
+            )
+            return DailyChallengeReminderEvaluationResponse(
+                completionState = progressResponse.completionState,
+                completionEligibility = progressResponse.completionEligibility,
+                reminderScheduleState = notScheduledReminderState(
+                    currentLocalDate = currentLocalDate,
+                    currentLocalTime = currentLocalTime,
+                ),
+                calendarFailureResponse = currentDayChallengeResult.failureResponse,
+                progressFailureResponse = progressResponse.failureResponse,
+            )
+        }
+
         val reminderResponse = challengeReminderProtocol.evaluateReminderSchedule(
-            reminderPreference = reminderPreference,
-            currentLocalDate = currentLocalDate,
-            currentLocalTime = currentLocalTime,
-            completionState = progressResponse.completionState,
+            ChallengeReminderEvaluationInput(
+                reminderPreference = reminderPreference,
+                campaignWindow = campaignWindow,
+                currentLocalDate = currentLocalDate,
+                currentLocalTime = currentLocalTime,
+                currentDayChallenge = currentDayChallengeResult?.challengeDetail,
+                completionState = progressResponse.completionState,
+            ),
         )
         logger.logDecision(
             module = MODULE_NAME,
@@ -498,6 +539,22 @@ class DailyServiceChallengeExperienceOrchestrator(
         challenge = this,
         completionState = progressResponse.completionState,
         completionEligibility = progressResponse.completionEligibility,
+    )
+
+    private fun notScheduledReminderState(
+        currentLocalDate: LocalDate,
+        currentLocalTime: LocalTime,
+    ) = ReminderScheduleState(
+        challengeDate = currentLocalDate,
+        evaluatedAtLocalTime = currentLocalTime,
+        earlyReminder = com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ReminderDecision(
+            localTime = LocalTime.of(10, 0),
+            status = com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ReminderScheduleStatus.NOT_SCHEDULED,
+        ),
+        laterReminder = com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ReminderDecision(
+            localTime = LocalTime.of(18, 0),
+            status = com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ReminderScheduleStatus.NOT_SCHEDULED,
+        ),
     )
 
     private data class ChallengeDetailLoadResult(

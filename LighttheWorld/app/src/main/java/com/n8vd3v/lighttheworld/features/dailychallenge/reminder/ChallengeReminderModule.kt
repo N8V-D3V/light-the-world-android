@@ -16,22 +16,6 @@ class ChallengeReminderModule(
 ) : ChallengeReminderProtocol {
 
     override fun evaluateReminderSchedule(
-        reminderPreference: ReminderPreference,
-        currentLocalDate: LocalDate,
-        currentLocalTime: LocalTime,
-        completionState: ChallengeProgress,
-    ): ChallengeReminderResponse =
-        evaluateReminderSchedule(
-            ChallengeReminderEvaluationInput(
-                reminderPreference = reminderPreference,
-                currentLocalDate = currentLocalDate,
-                currentLocalTime = currentLocalTime,
-                currentDayChallenge = null,
-                completionState = completionState,
-            ),
-        )
-
-    fun evaluateReminderSchedule(
         input: ChallengeReminderEvaluationInput,
     ): ChallengeReminderResponse {
         logger.logDecision(

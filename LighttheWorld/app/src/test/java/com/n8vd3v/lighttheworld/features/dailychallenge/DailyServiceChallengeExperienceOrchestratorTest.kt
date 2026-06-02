@@ -4,7 +4,6 @@ import com.n8vd3v.lighttheworld.cop.CopFailureResponse
 import com.n8vd3v.lighttheworld.features.dailychallenge.calendar.ChallengeCalendarContentModule
 import com.n8vd3v.lighttheworld.features.dailychallenge.calendar.ChallengeCalendarFailureReason
 import com.n8vd3v.lighttheworld.features.dailychallenge.calendar.ChallengeCalendarProtocol
-import com.n8vd3v.lighttheworld.features.dailychallenge.calendar.ChallengeCardListResponse
 import com.n8vd3v.lighttheworld.features.dailychallenge.calendar.ChallengeDetailResponse
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.ChallengeProgressFailureReason
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.ChallengeProgressModule
@@ -14,6 +13,7 @@ import com.n8vd3v.lighttheworld.features.dailychallenge.progress.CompletionEligi
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.CompletionReversalConfirmation
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.CompletionReversalPromptResponse
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderFailureReason
+import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderEvaluationInput
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderProtocol
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderResponse
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderModule
@@ -29,6 +29,7 @@ import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -114,20 +115,31 @@ class DailyServiceChallengeExperienceOrchestratorTest {
     }
 
     @Test
-    fun evaluateReminderSchedulePreservesSuppliedLocalDateAndLocalTime() {
+    fun evaluateReminderScheduleValidatesCurrentDayContentBeforeCallingReminderProtocolForInWindowDates() {
         val progressProtocol = RecordingChallengeProgressProtocol(
             stateResponse = ChallengeProgressStateResponse(
                 completionState = ChallengeProgress(
                     challengeDate = LocalDate.of(2026, 12, 10),
-                    status = ChallengeCompletionStatus.COMPLETED,
-                    completedAt = Instant.parse("2026-12-10T16:00:00Z"),
+                    status = ChallengeCompletionStatus.INCOMPLETE,
+                    completedAt = null,
                 ),
                 completionEligibility = CompletionEligibility.ELIGIBLE,
             ),
         )
-        val reminderProtocol = RecordingChallengeReminderProtocol()
+        val events = mutableListOf<String>()
+        val challenge = DailyChallenge(
+            date = LocalDate.of(2026, 12, 10),
+            shortSummary = "Day 10 service invitation",
+            detailDescription = "Detail",
+            suggestions = listOf("Suggestion"),
+        )
+        val calendarProtocol = RecordingChallengeCalendarProtocol(
+            challengeDetail = challenge,
+            events = events,
+        )
+        val reminderProtocol = RecordingChallengeReminderProtocol(events = events)
         val orchestrator = DailyServiceChallengeExperienceOrchestrator(
-            challengeCalendarProtocol = ChallengeCalendarContentModule(),
+            challengeCalendarProtocol = calendarProtocol,
             challengeProgressProtocol = progressProtocol,
             challengeReminderProtocol = reminderProtocol,
             challengeShareProtocol = ChallengeShareModule(),
@@ -139,14 +151,94 @@ class DailyServiceChallengeExperienceOrchestratorTest {
                 notificationPermissionGranted = true,
             ),
             currentLocalDate = LocalDate.of(2026, 12, 10),
-            currentLocalTime = LocalTime.of(17, 30),
+            currentLocalTime = LocalTime.of(9, 15),
         )
 
+        assertEquals(1, calendarProtocol.getChallengeDetailCallCount)
         assertEquals(LocalDate.of(2026, 12, 10), progressProtocol.lastChallengeDate)
         assertEquals(LocalDate.of(2026, 12, 10), progressProtocol.lastCurrentLocalDate)
+        assertEquals(LocalDate.of(2026, 12, 10), calendarProtocol.lastSelectedChallengeDate)
         assertEquals(LocalDate.of(2026, 12, 10), reminderProtocol.lastCurrentLocalDate)
-        assertEquals(LocalTime.of(17, 30), reminderProtocol.lastCurrentLocalTime)
-        assertEquals(ReminderScheduleStatus.SUPPRESSED, response.reminderScheduleState.laterReminder.status)
+        assertEquals(LocalTime.of(9, 15), reminderProtocol.lastCurrentLocalTime)
+        assertSame(challenge, reminderProtocol.lastInput?.currentDayChallenge)
+        assertEquals(0, reminderProtocol.legacyShimCallCount)
+        assertTrue(events.indexOf("calendar:getChallengeDetail") < events.indexOf("reminder:evaluateInput"))
+        assertEquals(ReminderScheduleStatus.SCHEDULED, response.reminderScheduleState.earlyReminder.status)
+    }
+
+    @Test
+    fun evaluateReminderScheduleSkipsChallengeContentLookupOutsideCampaignWindow() {
+        val progressProtocol = RecordingChallengeProgressProtocol()
+        val calendarProtocol = RecordingChallengeCalendarProtocol(
+            challengeDetail = DailyChallenge(
+                date = LocalDate.of(2026, 12, 10),
+                shortSummary = "Day 10 service invitation",
+                detailDescription = "Detail",
+                suggestions = listOf("Suggestion"),
+            ),
+        )
+        val reminderProtocol = RecordingChallengeReminderProtocol()
+        val orchestrator = DailyServiceChallengeExperienceOrchestrator(
+            challengeCalendarProtocol = calendarProtocol,
+            challengeProgressProtocol = progressProtocol,
+            challengeReminderProtocol = reminderProtocol,
+            challengeShareProtocol = ChallengeShareModule(),
+        )
+
+        val response = orchestrator.evaluateReminderSchedule(
+            reminderPreference = ReminderPreference(
+                remindersEnabled = true,
+                notificationPermissionGranted = true,
+            ),
+            currentLocalDate = LocalDate.of(2026, 11, 30),
+            currentLocalTime = LocalTime.of(9, 15),
+        )
+
+        assertEquals(0, calendarProtocol.getChallengeDetailCallCount)
+        assertEquals(LocalDate.of(2026, 11, 30), reminderProtocol.lastInput?.currentLocalDate)
+        assertNull(reminderProtocol.lastInput?.currentDayChallenge)
+        assertEquals(0, reminderProtocol.legacyShimCallCount)
+        assertNull(response.calendarFailureResponse)
+        assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.earlyReminder.status)
+        assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.laterReminder.status)
+    }
+
+    @Test
+    fun evaluateReminderScheduleReturnsExplicitFailureWhenInWindowChallengeContentCannotBeValidated() {
+        val progressProtocol = RecordingChallengeProgressProtocol()
+        val calendarProtocol = RecordingChallengeCalendarProtocol(
+            challengeDetail = null,
+            failureResponse = CopFailureResponse(
+                reason = ChallengeCalendarFailureReason.CHALLENGE_DATE_MISSING,
+                message = "Missing challenge content.",
+            ),
+        )
+        val reminderProtocol = RecordingChallengeReminderProtocol()
+        val orchestrator = DailyServiceChallengeExperienceOrchestrator(
+            challengeCalendarProtocol = calendarProtocol,
+            challengeProgressProtocol = progressProtocol,
+            challengeReminderProtocol = reminderProtocol,
+            challengeShareProtocol = ChallengeShareModule(),
+        )
+
+        val response = orchestrator.evaluateReminderSchedule(
+            reminderPreference = ReminderPreference(
+                remindersEnabled = true,
+                notificationPermissionGranted = true,
+            ),
+            currentLocalDate = LocalDate.of(2026, 12, 10),
+            currentLocalTime = LocalTime.of(9, 15),
+        )
+
+        assertEquals(1, calendarProtocol.getChallengeDetailCallCount)
+        assertEquals(0, reminderProtocol.inputCallCount)
+        assertEquals(
+            ChallengeCalendarFailureReason.CHALLENGE_DATE_MISSING,
+            response.calendarFailureResponse?.reason,
+        )
+        assertNull(response.reminderFailureResponse)
+        assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.earlyReminder.status)
+        assertEquals(ReminderScheduleStatus.NOT_SCHEDULED, response.reminderScheduleState.laterReminder.status)
     }
 
     @Test
@@ -234,33 +326,93 @@ class DailyServiceChallengeExperienceOrchestratorTest {
         ): ChallengeProgressStateResponse = stateResponse
     }
 
-    private class RecordingChallengeReminderProtocol : ChallengeReminderProtocol {
+    private class RecordingChallengeCalendarProtocol(
+        private val challengeDetail: DailyChallenge?,
+        private val failureResponse: CopFailureResponse<ChallengeCalendarFailureReason>? = null,
+        private val events: MutableList<String>? = null,
+    ) : ChallengeCalendarProtocol {
+        var getChallengeDetailCallCount: Int = 0
+        var lastSelectedChallengeDate: LocalDate? = null
+
+        override fun getChallengeCardList(
+            currentLocalDate: LocalDate,
+            campaignWindow: CampaignWindow,
+        ) = error("Card list is not used in this test.")
+
+        override fun getChallengeDetail(
+            currentLocalDate: LocalDate,
+            campaignWindow: CampaignWindow,
+            selectedChallengeDate: LocalDate,
+        ): ChallengeDetailResponse {
+            getChallengeDetailCallCount += 1
+            lastSelectedChallengeDate = selectedChallengeDate
+            events?.add("calendar:getChallengeDetail")
+            return ChallengeDetailResponse(
+                challengeDetail = challengeDetail,
+                failureResponse = failureResponse,
+            )
+        }
+    }
+
+    private class RecordingChallengeReminderProtocol(
+        private val events: MutableList<String>? = null,
+    ) : ChallengeReminderProtocol {
+        var inputCallCount: Int = 0
+        var legacyShimCallCount: Int = 0
+        var lastInput: ChallengeReminderEvaluationInput? = null
         var lastCurrentLocalDate: LocalDate? = null
         var lastCurrentLocalTime: LocalTime? = null
 
+        override fun evaluateReminderSchedule(
+            input: ChallengeReminderEvaluationInput,
+        ): ChallengeReminderResponse {
+            inputCallCount += 1
+            lastInput = input
+            lastCurrentLocalDate = input.currentLocalDate
+            lastCurrentLocalTime = input.currentLocalTime
+            events?.add("reminder:evaluateInput")
+            return ChallengeReminderResponse(
+                reminderScheduleState = ReminderScheduleState(
+                    challengeDate = input.currentLocalDate,
+                    evaluatedAtLocalTime = input.currentLocalTime,
+                    earlyReminder = ReminderDecision(
+                        localTime = LocalTime.of(10, 0),
+                        status = if (!input.campaignWindow.includes(input.currentLocalDate)) {
+                            ReminderScheduleStatus.NOT_SCHEDULED
+                        } else if (input.currentLocalTime.isBefore(LocalTime.of(10, 0))) {
+                            ReminderScheduleStatus.SCHEDULED
+                        } else {
+                            ReminderScheduleStatus.NOT_SCHEDULED
+                        },
+                    ),
+                    laterReminder = ReminderDecision(
+                        localTime = LocalTime.of(18, 0),
+                        status = if (!input.campaignWindow.includes(input.currentLocalDate)) {
+                            ReminderScheduleStatus.NOT_SCHEDULED
+                        } else if (
+                            input.currentLocalTime.isBefore(LocalTime.of(18, 0)) &&
+                            input.completionState.status != ChallengeCompletionStatus.COMPLETED
+                        ) {
+                            ReminderScheduleStatus.SCHEDULED
+                        } else {
+                            ReminderScheduleStatus.NOT_SCHEDULED
+                        },
+                    ),
+                ),
+                failureResponse = null,
+            )
+        }
+
+        @Deprecated("Test-only guard against shim usage.")
+        @Suppress("DEPRECATION")
         override fun evaluateReminderSchedule(
             reminderPreference: ReminderPreference,
             currentLocalDate: LocalDate,
             currentLocalTime: LocalTime,
             completionState: ChallengeProgress,
         ): ChallengeReminderResponse {
-            lastCurrentLocalDate = currentLocalDate
-            lastCurrentLocalTime = currentLocalTime
-            return ChallengeReminderResponse(
-                reminderScheduleState = ReminderScheduleState(
-                    challengeDate = currentLocalDate,
-                    evaluatedAtLocalTime = currentLocalTime,
-                    earlyReminder = ReminderDecision(
-                        localTime = LocalTime.of(10, 0),
-                        status = ReminderScheduleStatus.SCHEDULED,
-                    ),
-                    laterReminder = ReminderDecision(
-                        localTime = LocalTime.of(18, 0),
-                        status = ReminderScheduleStatus.SUPPRESSED,
-                    ),
-                ),
-                failureResponse = null,
-            )
+            legacyShimCallCount += 1
+            error("Deprecated reminder shim should not be used by the orchestrator.")
         }
     }
 }

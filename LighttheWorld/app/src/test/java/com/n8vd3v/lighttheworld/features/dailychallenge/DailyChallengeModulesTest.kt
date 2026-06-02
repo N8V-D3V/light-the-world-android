@@ -8,6 +8,7 @@ import com.n8vd3v.lighttheworld.features.dailychallenge.progress.ChallengeProgre
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.CompletionReversalConfirmation
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderEvaluationInput
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderFailureReason
+import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderProtocol
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ChallengeReminderModule
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ReminderPreference
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.ReminderScheduleStatus
@@ -131,7 +132,7 @@ class DailyChallengeModulesTest {
 
     @Test
     fun reminderModuleSchedulesBothRemindersBeforeTenAmWhenInWindowAndIncomplete() {
-        val module = ChallengeReminderModule()
+        val module: ChallengeReminderProtocol = ChallengeReminderModule()
         val reminderPreference = ReminderPreference(
             remindersEnabled = true,
             notificationPermissionGranted = true,
@@ -163,7 +164,7 @@ class DailyChallengeModulesTest {
 
     @Test
     fun reminderModuleSchedulesOnlyLaterReminderBetweenTenAmAndSixPmWhenIncomplete() {
-        val module = ChallengeReminderModule()
+        val module: ChallengeReminderProtocol = ChallengeReminderModule()
         val response = module.evaluateReminderSchedule(
             ChallengeReminderEvaluationInput(
                 reminderPreference = ReminderPreference(
@@ -194,7 +195,7 @@ class DailyChallengeModulesTest {
 
     @Test
     fun reminderModuleReturnsBothNotScheduledAtOrAfterSixPm() {
-        val module = ChallengeReminderModule()
+        val module: ChallengeReminderProtocol = ChallengeReminderModule()
         val response = module.evaluateReminderSchedule(
             ChallengeReminderEvaluationInput(
                 reminderPreference = ReminderPreference(
@@ -225,7 +226,7 @@ class DailyChallengeModulesTest {
 
     @Test
     fun reminderModuleReturnsBothNotScheduledOutsideCampaignWindow() {
-        val module = ChallengeReminderModule()
+        val module: ChallengeReminderProtocol = ChallengeReminderModule()
         val response = module.evaluateReminderSchedule(
             ChallengeReminderEvaluationInput(
                 reminderPreference = ReminderPreference(
@@ -250,7 +251,7 @@ class DailyChallengeModulesTest {
 
     @Test
     fun reminderModuleReturnsFailureWhenInWindowChallengeContentCannotBeValidated() {
-        val module = ChallengeReminderModule()
+        val module: ChallengeReminderProtocol = ChallengeReminderModule()
         val response = module.evaluateReminderSchedule(
             ChallengeReminderEvaluationInput(
                 reminderPreference = ReminderPreference(
@@ -278,7 +279,7 @@ class DailyChallengeModulesTest {
 
     @Test
     fun reminderModuleReturnsPermissionFailureAfterValidatedInWindowChallenge() {
-        val module = ChallengeReminderModule()
+        val module: ChallengeReminderProtocol = ChallengeReminderModule()
         val response = module.evaluateReminderSchedule(
             ChallengeReminderEvaluationInput(
                 reminderPreference = ReminderPreference(
@@ -338,4 +339,15 @@ class DailyChallengeModulesTest {
         detailDescription = "Stub challenge content for reminder evaluation.",
         suggestions = listOf("Share light with one person."),
     )
+
+    @Test
+    fun reminderStatusModelSurfaceIncludesOnlyApprovedStates() {
+        assertEquals(
+            listOf(
+                ReminderScheduleStatus.SCHEDULED,
+                ReminderScheduleStatus.NOT_SCHEDULED,
+            ),
+            ReminderScheduleStatus.entries,
+        )
+    }
 }
