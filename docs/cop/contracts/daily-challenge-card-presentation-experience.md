@@ -20,6 +20,7 @@ Define the user-visible presentation and interaction behavior for browsing daily
 ## 3. Inputs
 - challenge card list: collection — ordered set of challenge cards with front-face and back-face content ready for presentation.
 - card presentation states: collection — per-card visual states indicating completed or incomplete presentation and future or non-future presentation.
+- current date: date or null — current local date used only to choose the initial active card when no active card is already set.
 - browse request: event — user action requesting horizontal movement through the card sequence.
 - active card request: event — user action requesting that a specific card become the centered active card.
 - card face request: event — user action requesting that the active card show its front face or back face.
@@ -31,6 +32,7 @@ Define the user-visible presentation and interaction behavior for browsing daily
 
 ## 4. Outputs
 - challenge card rail: collection — horizontally arranged challenge card presentation.
+- empty card rail state: object — non-interactive empty presentation shown when no challenge cards are available to present.
 - active card state: object — the currently centered and visually emphasized card.
 - adjacent card preview state: object — partially visible neighboring cards at the edges of the active card.
 - card face state: object — whether the active card shows its front face or back face.
@@ -62,36 +64,44 @@ Define the user-visible presentation and interaction behavior for browsing daily
 - active card face: enum — `front` or `back`.
 - available actions: collection — browse previous, browse next, show front, or show back when applicable.
 
+### Empty Card Rail State
+- message: string — user-visible message indicating that no challenges are available.
+- interaction state: enum — `non_interactive`.
+
 ---
 
 ## 6. Success Behavior
 
 1. The system must present daily challenges as a horizontally scrolling sequence of cards ordered by challenge date.
-2. When one or more cards are available, the system must present exactly one centered active card at a time.
-3. The centered active card must receive the strongest visual emphasis in the card rail.
-4. When neighboring cards exist, the system must keep them partially visible at the edges of the active card.
-5. When the first card is active, the system must show only the next adjacent card preview.
-6. When the last card is active, the system must show only the previous adjacent card preview.
-7. When only one card exists, the system must present that card as the active card without adjacent previews.
-8. After a browse request ends, the system must snap to a single centered active card rather than leaving the rail resting between cards.
-9. Scrolling motion and snap motion must feel calm, clean, and deliberate rather than flashy or abrupt.
-10. Adjacent preview cards must present their front-face view only.
-11. The front face of the active card must present the challenge date and short summary as the primary visible content.
-12. The back face of the active card must present the detail description and suggestions as the primary visible content.
-13. Only the centered active card may change to its back face.
-14. When the user requests the opposite face for the active card, the system must change only that card face while keeping that card centered and active.
-15. When a different card becomes active, the previously active card must return to its front face before becoming adjacent or offscreen.
-16. When back-face content exceeds one card view, the active card back face must support in-place vertical scrolling of its detail description and suggestions while the card remains centered and active.
-17. While the user scrolls back-face content vertically, the system must preserve the current active card and visible face rather than treating that movement as a horizontal card-browsing request.
-18. Future cards supplied to this experience must remain visible in the same card rail, eligible to become the active card, and eligible to show both faces when active.
-19. Completed cards must display a distinct completed visual treatment that preserves readability and does not block browsing, face changes, or back-face reading.
-20. Incomplete cards must display the default non-completed visual treatment while preserving the same card structure and interaction model.
-21. The card presentation must use a bold rounded card treatment and a calm Light the World visual tone with red as the dominant accent, white or cream as the clean base, navy as supporting contrast, and gold reserved for sparse emphasis.
-22. Text and state indicators must remain readable across front-face, back-face, active, adjacent, completed, incomplete, future, and non-future card states.
-23. Accessibility browse requests must move active focus one card at a time in sequence order while preserving a single centered active-card presentation.
-24. Accessibility presentation must expose the active card's date, position in the sequence, current face, and whether previous or next browse actions are available.
-25. Accessibility face requests must allow the active card to change between front and back without requiring gesture-only interaction.
-26. Accessibility interaction must allow back-face content to be read fully when that content exceeds one card view.
+2. When the challenge card list is available but empty, the system must present a non-interactive empty state with a user-visible message that no challenges are available.
+3. When the challenge card list is available but empty, the system must not present an active card or adjacent card previews.
+4. When one or more cards are available, the system must present exactly one centered active card at a time.
+5. When the current active card is null and one card matches the current date, the system must choose that card as the initial centered active card.
+6. When the current active card is null and no card matches the current date, the system must choose the first card in sequence as the initial centered active card.
+7. The centered active card must receive the strongest visual emphasis in the card rail.
+8. When neighboring cards exist, the system must keep them partially visible at the edges of the active card.
+9. When the first card is active, the system must show only the next adjacent card preview.
+10. When the last card is active, the system must show only the previous adjacent card preview.
+11. When only one card exists, the system must present that card as the active card without adjacent previews.
+12. After a browse request ends, the system must snap to a single centered active card rather than leaving the rail resting between cards.
+13. Scrolling motion and snap motion must feel calm, clean, and deliberate rather than flashy or abrupt.
+14. Adjacent preview cards must present their front-face view only.
+15. The front face of the active card must present the challenge date and short summary as the primary visible content.
+16. The back face of the active card must present the detail description and suggestions as the primary visible content.
+17. Only the centered active card may change to its back face.
+18. When the user requests the opposite face for the active card, the system must change only that card face while keeping that card centered and active.
+19. When a different card becomes active, the previously active card must return to its front face before becoming adjacent or offscreen.
+20. When back-face content exceeds one card view, the active card back face must support in-place vertical scrolling of its detail description and suggestions while the card remains centered and active.
+21. While the user scrolls back-face content vertically, the system must preserve the current active card and visible face rather than treating that movement as a horizontal card-browsing request.
+22. Future cards supplied to this experience must remain visible in the same card rail, eligible to become the active card, and eligible to show both faces when active.
+23. Completed cards must display a distinct completed visual treatment that preserves readability and does not block browsing, face changes, or back-face reading.
+24. Incomplete cards must display the default non-completed visual treatment while preserving the same card structure and interaction model.
+25. The card presentation must use a bold rounded card treatment and a calm Light the World visual tone with red as the dominant accent, white or cream as the clean base, navy as supporting contrast, and gold reserved for sparse emphasis.
+26. Text and state indicators must remain readable across front-face, back-face, active, adjacent, completed, incomplete, future, and non-future card states.
+27. Accessibility browse requests must move active focus one card at a time in sequence order while preserving a single centered active-card presentation.
+28. Accessibility presentation must expose the active card's date, position in the sequence, current face, and whether previous or next browse actions are available.
+29. Accessibility face requests must allow the active card to change between front and back without requiring gesture-only interaction.
+30. Accessibility interaction must allow back-face content to be read fully when that content exceeds one card view.
 
 ---
 
@@ -99,6 +109,9 @@ Define the user-visible presentation and interaction behavior for browsing daily
 
 - Condition: challenge card list is unavailable when card presentation is requested
   - System must: return a failure response and must not fabricate a card rail
+
+- Condition: current active card is null, multiple cards are available, and the system cannot determine the contract-defined initial active card
+  - System must: return a failure response and must not present an arbitrary active card
 
 - Condition: required front-face or back-face content is missing for a card requested for active presentation
   - System must: return a failure response and must not present that card as a partially defined interactive card
@@ -121,7 +134,9 @@ Define the user-visible presentation and interaction behavior for browsing daily
 
 - The first card becomes active while more cards remain to the right.
 - The last card becomes active while more cards remain to the left.
+- The challenge card list is available but empty.
 - Only one challenge card is available for presentation.
+- No current active card is set when multiple cards are available.
 - A new card becomes active while the previous active card is showing its back face.
 - A future card becomes active and is flipped to its back face.
 - A completed card becomes active and is flipped to its back face.
@@ -136,7 +151,9 @@ Define the user-visible presentation and interaction behavior for browsing daily
 - Must not introduce challenge behavior outside this contract.
 - Must not redefine challenge eligibility, completion, reminder, or share business rules already defined elsewhere.
 - Must use the ordered challenge card content supplied by the approved daily challenge experience.
+- Must present an empty state instead of a fabricated card rail when the challenge card list is available but empty.
 - Must preserve a horizontally scrolling card rail with one centered active card and partial adjacent card previews.
+- Must choose the initial active card deterministically when no active card is already set.
 - Must preserve calm, clean motion rather than flashy or distracting motion.
 - Must preserve the Light the World campaign palette and tone defined in this contract.
 - Must keep future cards visually viewable and browsable in the same presentation model.
@@ -177,7 +194,9 @@ Define the user-visible presentation and interaction behavior for browsing daily
 ## 11. Acceptance Criteria
 
 - [ ] Users can browse an ordered horizontal rail of daily challenge cards.
+- [ ] When the challenge card list is available but empty, users see a non-interactive message that no challenges are available.
 - [ ] Exactly one card is centered as the active card whenever one or more cards are available.
+- [ ] When no active card is already set, the initial active card is today’s card when present, otherwise the first card in sequence.
 - [ ] Neighboring cards remain partially visible at the edges of the centered active card when neighbors exist.
 - [ ] The rail snaps to a single centered active card after horizontal browsing ends.
 - [ ] The front face of the active card presents the challenge date and short summary.
