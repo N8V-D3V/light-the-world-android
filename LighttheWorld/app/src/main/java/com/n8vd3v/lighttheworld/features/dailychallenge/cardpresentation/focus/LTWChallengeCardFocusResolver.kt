@@ -18,7 +18,7 @@ import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.Challen
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.ChallengeCardVisualEmphasisState
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.PresentedChallengeCard
 
-class StubChallengeCardFocusResolver(
+class LTWChallengeCardFocusResolver(
     private val logger: StubDecisionLogger = NoOpStubDecisionLogger,
 ) : ChallengeCardFocusResolver {
 
@@ -292,6 +292,6 @@ class StubChallengeCardFocusResolver(
     }
 
     companion object {
-        private const val MODULE_NAME = "StubChallengeCardFocusResolver"
+        private const val MODULE_NAME = "LTWChallengeCardFocusResolver"
     }
 }

@@ -13,7 +13,7 @@ import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.Challen
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.ChallengeCardVisibleFace
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.PresentedChallengeCard
 
-class StubChallengeCardAccessibilityPresenter(
+class LTWChallengeCardAccessibilityPresenter(
     private val logger: StubDecisionLogger = NoOpStubDecisionLogger,
 ) : ChallengeCardAccessibilityPresenter {
 
@@ -236,6 +236,6 @@ class StubChallengeCardAccessibilityPresenter(
     }
 
     companion object {
-        private const val MODULE_NAME = "StubChallengeCardAccessibilityPresenter"
+        private const val MODULE_NAME = "LTWChallengeCardAccessibilityPresenter"
     }
 }

@@ -7,16 +7,16 @@ import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.Challen
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.ChallengeCardAccessibilityAction.SHOW_FRONT
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.accessibility.ChallengeCardAccessibilityFailureReason
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.accessibility.ChallengeCardAccessibilityInput
-import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.accessibility.StubChallengeCardAccessibilityPresenter
+import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.accessibility.LTWChallengeCardAccessibilityPresenter
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.face.ChallengeCardFaceFailureReason
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.face.ChallengeCardFaceInput
-import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.face.StubChallengeCardFacePresenter
+import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.face.LTWChallengeCardFacePresenter
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.focus.ChallengeCardFocusFailureReason
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.focus.ChallengeCardFocusInput
-import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.focus.StubChallengeCardFocusResolver
+import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.focus.LTWChallengeCardFocusResolver
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.rail.ChallengeCardRailFailureReason
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.rail.ChallengeCardRailInput
-import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.rail.StubChallengeCardRailPresenter
+import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.rail.LTWChallengeCardRailPresenter
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -25,12 +25,12 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class ChallengeCardPresentationStubsTest {
+class ChallengeCardPresentationImplementationsTest {
 
     @Test
     fun railModuleReturnsNonInteractiveEmptyStateWithoutActiveOrAdjacentCards() {
         val logger = InMemoryStubDecisionLogger()
-        val module = StubChallengeCardRailPresenter(logger = logger)
+        val module = LTWChallengeCardRailPresenter(logger = logger)
 
         val response = module.presentCardRail(
             ChallengeCardRailInput(
@@ -54,7 +54,7 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun focusModuleUsesTodaysCardAsInitialActiveWhenPresent() {
-        val module = StubChallengeCardFocusResolver()
+        val module = LTWChallengeCardFocusResolver()
         val cards = listOf(card(10), card(11), card(12))
 
         val response = module.resolveActiveCardFocus(
@@ -76,7 +76,7 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun focusModuleFallsBackToFirstCardWhenTodaysCardIsAbsent() {
-        val module = StubChallengeCardFocusResolver()
+        val module = LTWChallengeCardFocusResolver()
         val cards = listOf(card(2), card(5), card(9))
 
         val response = module.resolveActiveCardFocus(
@@ -96,7 +96,7 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun focusModuleFailsWhenInitialActiveCardCannotBeDeterministicallyResolved() {
-        val module = StubChallengeCardFocusResolver()
+        val module = LTWChallengeCardFocusResolver()
         val cards = listOf(
             card(day = 10, identifier = "card-a"),
             card(day = 10, identifier = "card-b"),
@@ -122,8 +122,8 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun focusAndRailModulesPreserveSingleCenteredCardAndSnapAfterBrowseEnds() {
-        val focusModule = StubChallengeCardFocusResolver()
-        val railModule = StubChallengeCardRailPresenter()
+        val focusModule = LTWChallengeCardFocusResolver()
+        val railModule = LTWChallengeCardRailPresenter()
         val cards = listOf(card(10), card(11), card(12))
 
         val focusResponse = focusModule.resolveActiveCardFocus(
@@ -177,7 +177,7 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun railModuleFailsWhenCardContentIsMissing() {
-        val module = StubChallengeCardRailPresenter()
+        val module = LTWChallengeCardRailPresenter()
         val invalidCard = card(day = 10, detailDescription = "", suggestions = emptyList())
 
         val response = module.presentCardRail(
@@ -198,7 +198,7 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun faceModuleAllowsOnlyActiveCardToFlipAndKeepsBackFaceReadingInPlace() {
-        val module = StubChallengeCardFacePresenter()
+        val module = LTWChallengeCardFacePresenter()
         val cards = listOf(card(10), card(11))
 
         val faceResponse = module.resolveCardFace(
@@ -234,7 +234,7 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun faceModuleReturnsFrontWhenDifferentCardBecomesActive() {
-        val module = StubChallengeCardFacePresenter()
+        val module = LTWChallengeCardFacePresenter()
         val cards = listOf(card(10), card(11))
 
         val response = module.resolveCardFace(
@@ -255,7 +255,7 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun faceModuleFailsWhenRequiredActiveCardContentIsMissing() {
-        val module = StubChallengeCardFacePresenter()
+        val module = LTWChallengeCardFacePresenter()
         val invalidCard = card(day = 10, detailDescription = "", suggestions = emptyList())
 
         val response = module.resolveCardFace(
@@ -276,7 +276,7 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun faceModuleFailsWhenNoActiveCardExistsForFaceChange() {
-        val module = StubChallengeCardFacePresenter()
+        val module = LTWChallengeCardFacePresenter()
 
         val response = module.resolveCardFace(
             ChallengeCardFaceInput(
@@ -293,7 +293,7 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun accessibilityModuleSupportsBrowseFaceChangeAndLongContentReading() {
-        val module = StubChallengeCardAccessibilityPresenter()
+        val module = LTWChallengeCardAccessibilityPresenter()
         val cards = listOf(card(10), card(11), card(12))
 
         val browseResponse = module.resolveAccessibilityPresentation(
@@ -361,7 +361,7 @@ class ChallengeCardPresentationStubsTest {
 
     @Test
     fun accessibilityModuleFailsWhenAccessibleStateCannotBeExposed() {
-        val module = StubChallengeCardAccessibilityPresenter()
+        val module = LTWChallengeCardAccessibilityPresenter()
 
         val response = module.resolveAccessibilityPresentation(
             ChallengeCardAccessibilityInput(

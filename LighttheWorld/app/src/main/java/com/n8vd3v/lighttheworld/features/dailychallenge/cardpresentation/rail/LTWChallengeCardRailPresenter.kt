@@ -18,7 +18,7 @@ import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.Challen
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.EmptyCardRailState
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.PresentedChallengeCard
 
-class StubChallengeCardRailPresenter(
+class LTWChallengeCardRailPresenter(
     private val logger: StubDecisionLogger = NoOpStubDecisionLogger,
 ) : ChallengeCardRailPresenter {
 
@@ -231,6 +231,6 @@ class StubChallengeCardRailPresenter(
     }
 
     companion object {
-        private const val MODULE_NAME = "StubChallengeCardRailPresenter"
+        private const val MODULE_NAME = "LTWChallengeCardRailPresenter"
     }
 }

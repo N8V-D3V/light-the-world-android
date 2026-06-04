@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Light the World</string>
+    <string name="suggestions_label">Suggestions:</string>
+    <string name="no_challenges_available">No challenges are available at this time.</string>
+    <string name="suggestion_bullet">• %1$s</string>
+    <string name="completed_content_description">Completed</string>
 </resources>
