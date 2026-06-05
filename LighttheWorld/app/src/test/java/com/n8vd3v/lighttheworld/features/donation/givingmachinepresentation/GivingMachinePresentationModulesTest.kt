@@ -159,7 +159,8 @@ class GivingMachinePresentationModulesTest {
 
         assertEquals(MachineWindowPositionState.BOTTOM, bottomResponse.machineWindowState?.windowPositionState)
         assertEquals(MachineWindowPeekContinuationState.PEEK_ABOVE_ONLY, bottomResponse.machineWindowState?.peekContinuationState)
-        assertEquals("19", bottomResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
+        assertEquals(9, bottomResponse.machineWindowState?.visibleSlotItems?.size)
+        assertEquals("13", bottomResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
         assertEquals("21", bottomResponse.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
     }
 
@@ -187,7 +188,10 @@ class GivingMachinePresentationModulesTest {
         )
         assertNull(emptyResponse.failureResponse)
         assertEquals("No Giving Machine items are available.", emptyResponse.emptyMachineState?.message)
-        assertNull(emptyResponse.machineWindowState)
+        assertNotNull(emptyResponse.machineWindowState)
+        assertTrue(emptyResponse.machineWindowState!!.visibleSlotItems.isEmpty())
+        assertEquals(MachineWindowPositionState.SINGLE_WINDOW, emptyResponse.machineWindowState?.windowPositionState)
+        assertEquals(MachineWindowPeekContinuationState.NO_PEEK, emptyResponse.machineWindowState?.peekContinuationState)
 
         val unavailableResponse = singleWindowModule.presentMachineWindow(
             GivingMachineWindowInput(
@@ -491,6 +495,42 @@ class GivingMachinePresentationModulesTest {
             ),
         )
         assertTrue(logger.entries.isNotEmpty())
+
+        val emptyBrowseResponse = module.presentAccessibilityState(
+            GivingMachineAccessibilityInput(
+                givingMachinePeekState = GivingMachinePeekState(),
+                givingMachineDestinationState = expandedMachineBrowseState(),
+                machineWindowState = MachineWindowState(
+                    visibleSlotItems = emptyList(),
+                    windowPositionState = MachineWindowPositionState.SINGLE_WINDOW,
+                    peekContinuationState = MachineWindowPeekContinuationState.NO_PEEK,
+                ),
+                slotSelectionState = null,
+                addToCartConfirmationState = null,
+                cartOrCheckoutPresentationState = null,
+                infoPresentationState = null,
+                accessibilityActionRequest = null,
+            ),
+        )
+
+        assertNull(emptyBrowseResponse.failureResponse)
+        assertEquals(GivingMachineVisibleContext.MACHINE_BROWSE, emptyBrowseResponse.accessibilityPresentationState?.visibleContext)
+        assertTrue(emptyBrowseResponse.accessibilityPresentationState!!.visibleSlotNumbers.isEmpty())
+        assertTrue(
+            emptyBrowseResponse.accessibilityPresentationState!!.availableActions.contains(
+                GivingMachineAccessibilityAction.OPEN_CART_OR_CHECKOUT,
+            ),
+        )
+        assertTrue(
+            emptyBrowseResponse.accessibilityPresentationState!!.availableActions.contains(
+                GivingMachineAccessibilityAction.OPEN_INFO,
+            ),
+        )
+        assertTrue(
+            emptyBrowseResponse.accessibilityPresentationState!!.availableActions.contains(
+                GivingMachineAccessibilityAction.DISMISS_MACHINE,
+            ),
+        )
 
         val failureResponse = module.presentAccessibilityState(
             GivingMachineAccessibilityInput(

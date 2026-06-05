@@ -118,6 +118,42 @@ class GivingMachinePresentationSliceOrchestratorTest {
     }
 
     @Test
+    fun emptyCatalogOpenMachinePreservesExpandedAccessibleEmptyBrowseState() {
+        val orchestrator = orchestrator()
+        val environment = environment(catalog = emptyList())
+
+        val response = orchestrator.openMachine(
+            currentState = orchestrator.presentHomePeek(environment).presentationState,
+            environment = environment,
+        )
+
+        assertNull(response.windowFailureResponse)
+        assertNull(response.accessibilityFailureResponse)
+        assertEquals(
+            GivingMachineVisibleContext.MACHINE_BROWSE,
+            response.presentationState.givingMachineDestinationState?.visibleContext,
+        )
+        assertEquals("No Giving Machine items are available.", response.presentationState.emptyMachineState?.message)
+        assertNotNull(response.presentationState.machineWindowState)
+        assertTrue(response.presentationState.machineWindowState!!.visibleSlotItems.isEmpty())
+        assertEquals(
+            GivingMachineVisibleContext.MACHINE_BROWSE,
+            response.presentationState.accessibilityPresentationState?.visibleContext,
+        )
+        assertTrue(response.presentationState.accessibilityPresentationState!!.visibleSlotNumbers.isEmpty())
+        assertTrue(
+            response.presentationState.accessibilityPresentationState!!.availableActions.contains(
+                GivingMachineAccessibilityAction.OPEN_CART_OR_CHECKOUT,
+            ),
+        )
+        assertTrue(
+            response.presentationState.accessibilityPresentationState!!.availableActions.contains(
+                GivingMachineAccessibilityAction.OPEN_INFO,
+            ),
+        )
+    }
+
+    @Test
     fun selectionRequiresExplicitConfirmationAndProducesConfirmedAddHandoff() {
         val orchestrator = orchestrator()
         val environment = environment(catalog = catalog(size = 12))

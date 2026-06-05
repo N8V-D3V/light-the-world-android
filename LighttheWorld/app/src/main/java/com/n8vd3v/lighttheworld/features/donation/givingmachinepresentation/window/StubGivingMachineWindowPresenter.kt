@@ -46,7 +46,11 @@ class StubGivingMachineWindowPresenter(
             input.currentCatalogState == GivingMachineCatalogPresentationState.EMPTY || catalog.isEmpty() -> {
                 currentWindowStartIndex = 0
                 GivingMachineWindowResponse(
-                    machineWindowState = null,
+                    machineWindowState = MachineWindowState(
+                        visibleSlotItems = emptyList(),
+                        windowPositionState = MachineWindowPositionState.SINGLE_WINDOW,
+                        peekContinuationState = MachineWindowPeekContinuationState.NO_PEEK,
+                    ),
                     emptyMachineState = EmptyMachineState(
                         message = "No Giving Machine items are available.",
                     ),
@@ -150,7 +154,10 @@ class StubGivingMachineWindowPresenter(
 
     private fun lastWindowStartIndex(
         catalogSize: Int,
-    ): Int = ((catalogSize - 1) / WINDOW_CAPACITY) * WINDOW_CAPACITY
+    ): Int = when {
+        catalogSize <= WINDOW_CAPACITY -> 0
+        else -> catalogSize - WINDOW_CAPACITY
+    }
 
     private fun rowStepSizeFor(
         step: MachineWindowBrowseStep?,
