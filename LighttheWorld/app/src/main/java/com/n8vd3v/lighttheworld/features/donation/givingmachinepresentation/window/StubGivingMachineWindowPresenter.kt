@@ -8,6 +8,7 @@ import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.Empt
 import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.GivingMachineCatalogPresentationState
 import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.GivingMachineSlotSelectionStateValue
 import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.MachineWindowBrowseDirection
+import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.MachineWindowBrowseStep
 import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.MachineWindowPeekContinuationState
 import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.MachineWindowPositionState
 import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.MachineWindowState
@@ -29,6 +30,7 @@ class StubGivingMachineWindowPresenter(
                 "catalogSize" to input.givingMachineCatalog?.size,
                 "catalogState" to input.currentCatalogState,
                 "browseDirection" to input.machineBrowseRequest?.direction,
+                "browseStep" to input.machineBrowseRequest?.step,
                 "currentWindowStartIndex" to currentWindowStartIndex,
             ),
         )
@@ -55,9 +57,10 @@ class StubGivingMachineWindowPresenter(
             else -> {
                 val lastWindowStartIndex = lastWindowStartIndex(catalog.size)
                 currentWindowStartIndex = currentWindowStartIndex.coerceIn(0, lastWindowStartIndex)
+                val rowStepSize = rowStepSizeFor(input.machineBrowseRequest?.step)
                 currentWindowStartIndex = when (input.machineBrowseRequest?.direction) {
-                    MachineWindowBrowseDirection.PREVIOUS -> (currentWindowStartIndex - WINDOW_CAPACITY).coerceAtLeast(0)
-                    MachineWindowBrowseDirection.NEXT -> (currentWindowStartIndex + WINDOW_CAPACITY).coerceAtMost(lastWindowStartIndex)
+                    MachineWindowBrowseDirection.PREVIOUS -> (currentWindowStartIndex - rowStepSize).coerceAtLeast(0)
+                    MachineWindowBrowseDirection.NEXT -> (currentWindowStartIndex + rowStepSize).coerceAtMost(lastWindowStartIndex)
                     null -> currentWindowStartIndex
                 }
 
@@ -149,6 +152,12 @@ class StubGivingMachineWindowPresenter(
         catalogSize: Int,
     ): Int = ((catalogSize - 1) / WINDOW_CAPACITY) * WINDOW_CAPACITY
 
+    private fun rowStepSizeFor(
+        step: MachineWindowBrowseStep?,
+    ): Int = when (step ?: MachineWindowBrowseStep.ONE_VISIBLE_ROW) {
+        MachineWindowBrowseStep.ONE_VISIBLE_ROW -> WINDOW_ROW_SIZE
+    }
+
     private fun PresentedGivingMachineItem.hasRequiredSlotContent(): Boolean =
         itemIdentifier.isNotBlank() &&
             title.isNotBlank() &&
@@ -169,5 +178,6 @@ class StubGivingMachineWindowPresenter(
     companion object {
         private const val MODULE_NAME = "StubGivingMachineWindowPresenter"
         private const val WINDOW_CAPACITY = 9
+        private const val WINDOW_ROW_SIZE = 3
     }
 }

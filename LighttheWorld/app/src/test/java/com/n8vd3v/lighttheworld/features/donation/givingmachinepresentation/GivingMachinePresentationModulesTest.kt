@@ -87,7 +87,7 @@ class GivingMachinePresentationModulesTest {
     }
 
     @Test
-    fun windowModulePresentsThreeByThreeWindowWithTopMiddleAndBottomPeekStates() {
+    fun windowModuleAdvancesByOneVisibleRowWhilePreservingWindowStatesAndPeeks() {
         val module = StubGivingMachineWindowPresenter()
         val catalog = catalog(size = 21)
 
@@ -102,14 +102,42 @@ class GivingMachinePresentationModulesTest {
             GivingMachineWindowInput(
                 givingMachineCatalog = catalog,
                 currentCatalogState = GivingMachineCatalogPresentationState.AVAILABLE,
-                machineBrowseRequest = MachineWindowBrowseRequest(MachineWindowBrowseDirection.NEXT),
+                machineBrowseRequest = MachineWindowBrowseRequest(
+                    direction = MachineWindowBrowseDirection.NEXT,
+                    step = MachineWindowBrowseStep.ONE_VISIBLE_ROW,
+                ),
             ),
         )
+        val lowerMiddleResponse = module.presentMachineWindow(
+            GivingMachineWindowInput(
+                givingMachineCatalog = catalog,
+                currentCatalogState = GivingMachineCatalogPresentationState.AVAILABLE,
+                machineBrowseRequest = MachineWindowBrowseRequest(
+                    direction = MachineWindowBrowseDirection.NEXT,
+                    step = MachineWindowBrowseStep.ONE_VISIBLE_ROW,
+                ),
+            ),
+        )
+        repeat(3) {
+            module.presentMachineWindow(
+                GivingMachineWindowInput(
+                    givingMachineCatalog = catalog,
+                    currentCatalogState = GivingMachineCatalogPresentationState.AVAILABLE,
+                    machineBrowseRequest = MachineWindowBrowseRequest(
+                        direction = MachineWindowBrowseDirection.NEXT,
+                        step = MachineWindowBrowseStep.ONE_VISIBLE_ROW,
+                    ),
+                ),
+            )
+        }
         val bottomResponse = module.presentMachineWindow(
             GivingMachineWindowInput(
                 givingMachineCatalog = catalog,
                 currentCatalogState = GivingMachineCatalogPresentationState.AVAILABLE,
-                machineBrowseRequest = MachineWindowBrowseRequest(MachineWindowBrowseDirection.NEXT),
+                machineBrowseRequest = MachineWindowBrowseRequest(
+                    direction = MachineWindowBrowseDirection.NEXT,
+                    step = MachineWindowBrowseStep.ONE_VISIBLE_ROW,
+                ),
             ),
         )
 
@@ -121,7 +149,13 @@ class GivingMachinePresentationModulesTest {
 
         assertEquals(MachineWindowPositionState.MIDDLE, middleResponse.machineWindowState?.windowPositionState)
         assertEquals(MachineWindowPeekContinuationState.PEEK_ABOVE_AND_BELOW, middleResponse.machineWindowState?.peekContinuationState)
-        assertEquals("10", middleResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
+        assertEquals("4", middleResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
+        assertEquals("12", middleResponse.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
+
+        assertEquals(MachineWindowPositionState.MIDDLE, lowerMiddleResponse.machineWindowState?.windowPositionState)
+        assertEquals(MachineWindowPeekContinuationState.PEEK_ABOVE_AND_BELOW, lowerMiddleResponse.machineWindowState?.peekContinuationState)
+        assertEquals("7", lowerMiddleResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
+        assertEquals("15", lowerMiddleResponse.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
 
         assertEquals(MachineWindowPositionState.BOTTOM, bottomResponse.machineWindowState?.windowPositionState)
         assertEquals(MachineWindowPeekContinuationState.PEEK_ABOVE_ONLY, bottomResponse.machineWindowState?.peekContinuationState)
