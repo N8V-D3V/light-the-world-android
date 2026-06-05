@@ -13,6 +13,10 @@ import com.n8vd3v.lighttheworld.features.dailychallenge.DailyServiceChallengeFlo
 import com.n8vd3v.lighttheworld.features.dailychallenge.calendar.JsonChallengeContentSource
 import com.n8vd3v.lighttheworld.features.dailychallenge.calendar.StubChallengeCalendar
 import com.n8vd3v.lighttheworld.features.dailychallenge.cardpresentation.DailyChallengeCardScreen
+import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.LTWGivingMachineExperienceScaffold
+import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.LTWGivingMachineSeedContent
+import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.LTWGivingMachineUiController
+import com.n8vd3v.lighttheworld.features.donation.givingmachinepresentation.LTWJsonGivingMachinePresentationContentSource
 import com.n8vd3v.lighttheworld.features.dailychallenge.progress.StubChallengeCompletionTracker
 import com.n8vd3v.lighttheworld.features.dailychallenge.reminder.StubChallengeReminderScheduler
 import com.n8vd3v.lighttheworld.features.dailychallenge.share.StubChallengeShareComposer
@@ -37,15 +41,24 @@ class MainActivity : ComponentActivity() {
             challengeReminderScheduler = StubChallengeReminderScheduler(),
             challengeShareComposer = StubChallengeShareComposer(),
         )
+        val givingMachineContent = LTWJsonGivingMachinePresentationContentSource(this).loadContent()
+            ?: LTWGivingMachineSeedContent.defaultContent()
+        val givingMachineController = LTWGivingMachineUiController(
+            environment = LTWGivingMachineSeedContent.environmentFor(givingMachineContent),
+        )
 
         setContent {
             LightTheWorldTheme {
                 Surface(color = CrispWhite) {
-                    DailyChallengeCardScreen(
-                        flow = challengeFlow,
-                        currentLocalDate = currentLocalDate,
-                        campaignWindow = campaignWindow,
-                    )
+                    LTWGivingMachineExperienceScaffold(
+                        controller = givingMachineController,
+                    ) {
+                        DailyChallengeCardScreen(
+                            flow = challengeFlow,
+                            currentLocalDate = currentLocalDate,
+                            campaignWindow = campaignWindow,
+                        )
+                    }
                 }
             }
         }

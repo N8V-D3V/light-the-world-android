@@ -4,4 +4,7 @@
     <string name="no_challenges_available">No challenges are available at this time.</string>
     <string name="suggestion_bullet">• %1$s</string>
     <string name="completed_content_description">Completed</string>
+    <string name="giving_machine_label">Giving Machine</string>
+    <string name="giving_machine_open_action">Open Giving Machine</string>
+    <string name="giving_machine_dismiss_action">Dismiss Giving Machine</string>
 </resources>

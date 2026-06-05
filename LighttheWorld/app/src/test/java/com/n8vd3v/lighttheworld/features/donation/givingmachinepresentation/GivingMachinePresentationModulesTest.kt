@@ -118,7 +118,7 @@ class GivingMachinePresentationModulesTest {
                 ),
             ),
         )
-        repeat(3) {
+        repeat(6) {
             module.presentMachineWindow(
                 GivingMachineWindowInput(
                     givingMachineCatalog = catalog,
@@ -141,26 +141,26 @@ class GivingMachinePresentationModulesTest {
             ),
         )
 
-        assertEquals(9, topResponse.machineWindowState?.visibleSlotItems?.size)
+        assertEquals(4, topResponse.machineWindowState?.visibleSlotItems?.size)
         assertEquals(MachineWindowPositionState.TOP, topResponse.machineWindowState?.windowPositionState)
         assertEquals(MachineWindowPeekContinuationState.PEEK_BELOW_ONLY, topResponse.machineWindowState?.peekContinuationState)
         assertEquals("1", topResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
-        assertEquals("9", topResponse.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
+        assertEquals("4", topResponse.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
 
         assertEquals(MachineWindowPositionState.MIDDLE, middleResponse.machineWindowState?.windowPositionState)
         assertEquals(MachineWindowPeekContinuationState.PEEK_ABOVE_AND_BELOW, middleResponse.machineWindowState?.peekContinuationState)
-        assertEquals("4", middleResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
-        assertEquals("12", middleResponse.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
+        assertEquals("3", middleResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
+        assertEquals("6", middleResponse.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
 
         assertEquals(MachineWindowPositionState.MIDDLE, lowerMiddleResponse.machineWindowState?.windowPositionState)
         assertEquals(MachineWindowPeekContinuationState.PEEK_ABOVE_AND_BELOW, lowerMiddleResponse.machineWindowState?.peekContinuationState)
-        assertEquals("7", lowerMiddleResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
-        assertEquals("15", lowerMiddleResponse.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
+        assertEquals("5", lowerMiddleResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
+        assertEquals("8", lowerMiddleResponse.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
 
         assertEquals(MachineWindowPositionState.BOTTOM, bottomResponse.machineWindowState?.windowPositionState)
         assertEquals(MachineWindowPeekContinuationState.PEEK_ABOVE_ONLY, bottomResponse.machineWindowState?.peekContinuationState)
-        assertEquals(9, bottomResponse.machineWindowState?.visibleSlotItems?.size)
-        assertEquals("13", bottomResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
+        assertEquals(4, bottomResponse.machineWindowState?.visibleSlotItems?.size)
+        assertEquals("18", bottomResponse.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
         assertEquals("21", bottomResponse.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
     }
 

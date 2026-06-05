@@ -63,7 +63,7 @@ class GivingMachinePresentationSliceOrchestratorTest {
             GivingMachineVisibleContext.MACHINE_BROWSE,
             openResponse.presentationState.givingMachineDestinationState?.visibleContext,
         )
-        assertEquals(9, openResponse.presentationState.machineWindowState?.visibleSlotItems?.size)
+        assertEquals(4, openResponse.presentationState.machineWindowState?.visibleSlotItems?.size)
 
         val dismissResponse = orchestrator.dismissMachine(
             currentState = openResponse.presentationState,
@@ -94,7 +94,7 @@ class GivingMachinePresentationSliceOrchestratorTest {
         )
 
         assertEquals("1", openResponse.presentationState.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
-        assertEquals("9", openResponse.presentationState.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
+        assertEquals("4", openResponse.presentationState.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
         assertEquals(
             MachineWindowPeekContinuationState.PEEK_BELOW_ONLY,
             openResponse.presentationState.machineWindowState?.peekContinuationState,
@@ -109,8 +109,8 @@ class GivingMachinePresentationSliceOrchestratorTest {
         )
 
         assertNull(browseResponse.windowFailureResponse)
-        assertEquals("4", browseResponse.presentationState.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
-        assertEquals("12", browseResponse.presentationState.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
+        assertEquals("3", browseResponse.presentationState.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
+        assertEquals("6", browseResponse.presentationState.machineWindowState?.visibleSlotItems?.last()?.slotNumber)
         assertEquals(
             MachineWindowPeekContinuationState.PEEK_ABOVE_AND_BELOW,
             browseResponse.presentationState.machineWindowState?.peekContinuationState,
@@ -340,7 +340,7 @@ class GivingMachinePresentationSliceOrchestratorTest {
             ),
         )
 
-        assertEquals("4", browseResponse.presentationState.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
+        assertEquals("3", browseResponse.presentationState.machineWindowState?.visibleSlotItems?.first()?.slotNumber)
 
         val armResponse = orchestrator.performAccessibilityAction(
             currentState = browseResponse.presentationState,

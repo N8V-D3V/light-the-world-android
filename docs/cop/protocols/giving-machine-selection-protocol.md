@@ -18,14 +18,14 @@ GivingMachineSelectionProtocol
 ---
 
 ## 2. Purpose
-Manage visible slot arming, explicit add-to-cart confirmation presentation, and experience-level dispense animation state without performing cart updates or donation business behavior.
+Manage visible slot arming, detail-driven explicit add-to-cart confirmation presentation, and experience-level dispense animation state without performing cart updates or donation business behavior.
 
 ---
 
 ## 3. Inputs
 - `machine window state: object` - visible numbered-slot window used to browse catalog items.
-- `slot selection request: event` - user action requesting that a visible numbered slot become selected and armed.
-- `add-to-cart confirmation request: event` - user action explicitly confirming that the armed item should be added to cart.
+- `slot selection request: event` - presentation request placing the selected visible slot into the approved armed state before add confirmation.
+- `add-to-cart confirmation request: event` - explicit add-to-cart action for the selected item, including when that action originates from item detail presentation.
 - `current armed slot: identifier or null` - currently armed catalog slot, if one exists.
 - `successful add-to-cart result: object or null` - indication from the donation flow that the confirmed item was successfully added to cart.
 
@@ -53,18 +53,19 @@ Manage visible slot arming, explicit add-to-cart confirmation presentation, and 
 ---
 
 ## 6. Behavior Requirements
-1. Must place a tapped visible item's numbered slot into an armed state without adding the item to cart.
-2. Must return any previously armed item to the unselected state when one item becomes armed.
-3. Must make the armed state visually distinct from unselected slots.
-4. Must present a separate explicit add-to-cart confirmation affordance for the armed item.
-5. Must require explicit confirmation before the armed item is added to cart.
-6. Must not add a previously armed item to cart if the user changes the armed item before confirming add to cart.
-7. Must preserve the current armed state and return a failure response when a slot selection request targets an item not currently present in the visible machine window.
-8. Must preserve the current visible state and return a failure response when add-to-cart confirmation is requested with no armed slot.
-9. Must present a short dispense or fall animation after a successful add-to-cart confirmation result is returned by the donation flow.
-10. Must keep the dispense animation brief and responsive rather than theatrical enough to block continued browsing.
-11. Must clear the armed state after the dispense animation completes unless the user explicitly re-arms an item.
-12. Must preserve the successful add result and return a non-animated confirmation state when dispense animation cannot be presented.
+1. Must place the selected visible item's numbered slot into an armed state without adding the item to cart.
+2. Must support presentation flows where the user first opens item detail and then invokes add to cart from that detail presentation.
+3. Must return any previously armed item to the unselected state when one item becomes armed.
+4. Must make any surfaced armed state visually distinct from unselected slots.
+5. Must present a separate explicit add-to-cart confirmation affordance for the armed item, including when that affordance is hosted inside item detail presentation.
+6. Must require explicit confirmation before the armed item is added to cart.
+7. Must not add a previously armed item to cart if the user changes the selected item before confirming add to cart.
+8. Must preserve the current armed state and return a failure response when a slot selection request targets an item not currently present in the visible machine window.
+9. Must preserve the current visible state and return a failure response when add-to-cart confirmation is requested with no armed slot.
+10. Must present a short dispense or fall animation after a successful add-to-cart confirmation result is returned by the donation flow.
+11. Must keep the dispense animation brief and responsive rather than theatrical enough to block continued browsing.
+12. Must clear the armed state after the dispense animation completes unless the user explicitly re-arms an item.
+13. Must preserve the successful add result and return a non-animated confirmation state when dispense animation cannot be presented.
 
 ---
 
@@ -84,7 +85,7 @@ Manage visible slot arming, explicit add-to-cart confirmation presentation, and 
 - Must not introduce behavior not defined in the source contract
 - Must remain reusable without embedding orchestration logic
 - Must not perform cart updates, cart math, pricing, checkout, payment, receipt, or refund behavior
-- Must preserve the approved armed-then-confirmed add flow
+- Must preserve the approved detail-opened and armed-then-confirmed add flow
 
 ---
 

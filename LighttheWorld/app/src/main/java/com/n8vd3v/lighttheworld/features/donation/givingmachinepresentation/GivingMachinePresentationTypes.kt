@@ -69,6 +69,7 @@ data class PresentedGivingMachineItem(
     val slotNumber: String,
     val title: String,
     val description: String,
+    val imageReference: String? = null,
     val selectionState: GivingMachineSlotSelectionStateValue,
 )
 

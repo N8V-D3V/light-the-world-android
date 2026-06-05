@@ -25,7 +25,7 @@ Provide the machine-window browse presentation for catalog items, including visi
 ## 3. Inputs
 - `giving machine catalog: collection` - ordered set of catalog items available for Giving Machine presentation.
 - `current catalog state: state` - whether catalog content is available, unavailable, or empty for presentation.
-- `machine browse request: event` - user action requesting movement through the visible machine window by exactly one visible row.
+- `machine browse request: event` - user action requesting movement through the visible machine window by exactly one visible row through browse controls or direct scroll interaction.
 
 ---
 
@@ -42,6 +42,7 @@ Provide the machine-window browse presentation for catalog items, including visi
   - `slot number: string or integer` - numbered slot identity assigned to the item according to catalog order.
   - `title: string` - presented catalog item title.
   - `description: string` - short presented catalog item description.
+  - `image reference: optional reference` - optional presentation image shown for the item when available.
   - `selection state: enum` - `unselected` or `armed`.
 - `MachineWindowState`
   - `visible slot items: collection` - currently visible numbered slots and their presented items.
@@ -56,17 +57,19 @@ Provide the machine-window browse presentation for catalog items, including visi
 ## 6. Behavior Requirements
 1. Must present the catalog through a machine-window metaphor when the catalog is available and contains items.
 2. Must preserve an immersive machine-like browse presentation, as though the user is looking through a real machine window behind glass.
-3. Must show three rows by three columns of numbered slots at one time when enough catalog items exist.
-4. Must show additional slots partially peeking above or below the visible window when more catalog items exist above or below.
+3. Must show two rows by two columns of slots at one time when enough catalog items exist.
+4. Must show additional items partially peeking above or below the visible window in row-aligned continuation ledges when more catalog items exist above or below.
 5. Must show only lower continuation peeks when the visible machine window is at the top of the catalog and more items exist below.
 6. Must show only upper continuation peeks when the visible machine window is at the bottom of the catalog and more items exist above.
-7. Must present only available items when the catalog contains fewer visible items than a full three-by-three window.
+7. Must present only available items when the catalog contains fewer visible items than a full two-by-two window.
 8. Must not fabricate unavailable catalog items or slots.
 9. Must move the visible slot window through the catalog for machine-window browse requests while preserving numbered slot presentation.
 10. Must advance the visible slot window by exactly one visible row for each machine-window browse request.
 11. Must assign slot numbers according to catalog order.
 12. Must keep a slot number consistent for an item while that item remains present in the catalog.
-13. Must present a non-transactional empty state when the catalog is available but empty.
+13. Must preserve slot identity for browse, selection, confirmation, and accessibility behavior even if the main visible item card does not prominently display the slot number inside the primary card body.
+14. Must preserve the same one-visible-row progression when the browse surface is moved by direct vertical scroll interaction.
+15. Must present a non-transactional empty state when the catalog is available but empty.
 
 ---
 

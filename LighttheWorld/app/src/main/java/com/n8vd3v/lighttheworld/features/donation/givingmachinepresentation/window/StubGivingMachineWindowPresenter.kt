@@ -184,7 +184,7 @@ class StubGivingMachineWindowPresenter(
 
     companion object {
         private const val MODULE_NAME = "StubGivingMachineWindowPresenter"
-        private const val WINDOW_CAPACITY = 9
-        private const val WINDOW_ROW_SIZE = 3
+        private const val WINDOW_CAPACITY = 4
+        private const val WINDOW_ROW_SIZE = 2
     }
 }

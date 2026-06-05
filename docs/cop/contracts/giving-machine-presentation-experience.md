@@ -23,9 +23,9 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 - current catalog state: state — whether catalog content is available, unavailable, or empty for presentation.
 - machine entry request: event — user action requesting that the Giving Machine surface open from its persistent peek state.
 - machine dismiss request: event — user action requesting that the Giving Machine surface close.
-- machine browse request: event — user action requesting movement through the visible machine window.
-- slot selection request: event — user action requesting that a visible numbered slot become selected and armed.
-- add-to-cart confirmation request: event — user action explicitly confirming that the armed item should be added to cart.
+- machine browse request: event — user action requesting movement through the visible machine window by browse control or direct scroll interaction.
+- item detail request: event — user action requesting full detail for a visible presented Giving Machine item.
+- add-to-cart confirmation request: event — user action explicitly confirming from the item detail presentation that the selected item should be added to cart.
 - cart presentation request: event — user action requesting entry into cart or checkout presentation.
 - info presentation request: event — user action requesting entry into the separate info screen.
 - current armed slot: identifier or null — currently armed catalog slot, if one exists.
@@ -37,6 +37,7 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 - giving machine destination state: object — expanded full-height Giving Machine presentation.
 - machine window state: object — visible numbered-slot window used to browse catalog items.
 - empty machine state: object — non-transactional empty presentation shown when no Giving Machine items are available.
+- item detail presentation state: object — modal or sheet presentation showing full item detail and explicit add-to-cart action for the selected item.
 - slot selection state: object — currently selected and armed slot presentation.
 - add-to-cart confirmation state: object — explicit confirmation affordance required before an armed item is added to cart.
 - dispense animation state: object — short user-visible dispense or fall presentation shown after a successful add-to-cart action.
@@ -54,6 +55,7 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 - slot number: string or integer — numbered slot identity assigned to the item according to catalog order.
 - title: string — presented catalog item title.
 - description: string — short presented catalog item description.
+- image reference: optional reference — optional presentation image shown for the item when available.
 - selection state: enum — `unselected` or `armed`.
 
 ### Giving Machine Surface State
@@ -65,6 +67,14 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 - visible slot items: collection — currently visible numbered slots and their presented items.
 - window position state: enum — `top`, `middle`, `bottom`, or `single_window`.
 - peek continuation state: enum — `peek_above_and_below`, `peek_above_only`, `peek_below_only`, or `no_peek`.
+
+### Item Detail Presentation State
+- item identifier: identifier — selected presented item reference.
+- slot number: string or integer — slot identity for the selected item.
+- title: string — full presented item title.
+- description: string — full presented item description.
+- image reference: optional reference — optional presentation image shown when available.
+- action state: enum — `detail_only` or `add_available`.
 
 ### Add-To-Cart Confirmation State
 - armed slot: identifier — currently armed slot awaiting explicit confirmation.
@@ -92,31 +102,36 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 7. The system must allow the expanded Giving Machine surface to close by a visible `X` dismissal control or by swipe-down interaction.
 8. When the Giving Machine catalog is available and contains items, the expanded Giving Machine browse surface must present the catalog through a machine-window metaphor.
 9. The machine browse surface must feel immersive and machine-like, as though the user is looking through a real machine window behind glass.
-10. When enough catalog items exist, the visible machine window must show three rows by three columns of numbered slots at one time.
-11. When more catalog items exist above or below the visible machine window, the system must show additional slots partially peeking above or below the visible window to indicate continued browsing.
+10. When enough catalog items exist, the visible machine window must show two rows by two columns of slots at one time.
+11. When more catalog items exist above or below the visible machine window, the system must show additional items partially peeking above or below the visible window in row-aligned continuation ledges to indicate continued browsing.
 12. When the visible machine window is at the top of the catalog, the system must show only lower continuation peeks if more items exist below.
 13. When the visible machine window is at the bottom of the catalog, the system must show only upper continuation peeks if more items exist above.
-14. When the catalog contains fewer visible items than a full three-by-three window, the system must present only available items and must not fabricate unavailable catalog items.
-15. Each machine-window browse request must move the visible slot window through the catalog by exactly one visible row while preserving numbered slot presentation.
-16. Slot numbering must follow catalog order and remain consistent for an item while that item remains present in the catalog.
-17. A single tap on a visible item must place that item's numbered slot into an armed state and must not add the item to cart by itself.
-18. When one item becomes armed, any previously armed item must return to the unselected state.
-19. The armed state must be visually distinct from unselected slots.
-20. The system must present a separate explicit add-to-cart confirmation affordance for the armed item.
-21. The system must require that explicit confirmation action before the armed item is added to cart.
-22. If the user changes the armed item before confirming add to cart, the previous armed item must not be added to cart.
-23. After a successful add-to-cart confirmation, the system must present a short dispense or fall animation for the item at the experience level.
-24. The dispense animation must feel brief and responsive rather than theatrical enough to block continued browsing.
-25. After the dispense animation completes, the system must clear the armed state unless the user explicitly re-arms an item.
-26. The cart or checkout presentation must remain visually connected to the Giving Machine experience but must feel clearer, calmer, and less theatrical than machine browsing.
-27. Entering cart or checkout presentation must shift emphasis from immersive machine browsing toward clear task completion and review.
-28. Returning from cart or checkout presentation to machine browsing within the Giving Machine surface must preserve the broader Giving Machine destination context.
-29. The Giving Machine experience must provide access to a separate `Info` screen for acknowledgements and app information.
-30. The `Info` screen must be non-transactional and must not arm items or add items to cart by itself.
-31. Returning from the `Info` screen must return the user to the Giving Machine surface rather than exiting the experience entirely unless the user explicitly dismisses it.
-32. When the catalog is available but empty, the system must present a non-transactional empty state indicating that no Giving Machine items are available and must not fabricate visible slots.
-33. Accessibility interaction must expose the `Giving Machine` entry surface, expanded or closed state, current visible context, available dismissal actions, visible slot numbers, armed-slot state, add-to-cart confirmation action, cart or checkout entry action, and info-screen entry action.
-34. Accessibility users must be able to open, browse, arm, confirm add to cart, open cart or checkout presentation, open the info screen, and dismiss the Giving Machine surface without relying on gesture-only interaction.
+14. When the catalog contains fewer visible items than a full two-by-two window, the system must present only available items and must not fabricate unavailable catalog items.
+15. Each machine-window browse request must move the visible slot window through the catalog by exactly one visible row while preserving slot identity.
+16. Direct vertical scroll interaction on the machine browse surface must browse through the catalog using that same one-visible-row progression rather than creating a separate free-form browse model.
+17. The system must preserve slot numbering identity for browse, selection, confirmation, and accessibility behavior, but the main visible item card should prioritize readable content and optional imagery rather than reserving primary card space for a large visible slot number.
+18. Slot numbering must follow catalog order and remain consistent for an item while that item remains present in the catalog.
+19. A single tap on a visible item must open an item detail presentation for that visible item and must not add the item to cart by itself.
+20. The main visible item card may truncate title or description text as needed for a readable browse presentation, but the item detail presentation must expose the full selected-item content.
+21. The item detail presentation must preserve slot identity and must present full title, description, optional image, and an explicit add-to-cart action for the selected item.
+22. The system must require that explicit add-to-cart action from the item detail presentation before the selected item is added to cart.
+23. If the detail presentation invokes add to cart, the system must use the same approved armed-then-confirmed selection boundary internally rather than bypassing it.
+24. When one item becomes armed for add confirmation, any previously armed item must return to the unselected state.
+25. Any surfaced armed state must remain visually distinct from unselected slots.
+26. If the user opens a different item detail presentation before confirming add to cart, the previously viewed or armed item must not be added to cart.
+27. After a successful add-to-cart confirmation, the system must present a short dispense or fall animation for the item at the experience level.
+28. The dispense animation must feel brief and responsive rather than theatrical enough to block continued browsing.
+29. After the dispense animation completes, the system must clear the armed state unless the user explicitly re-arms an item.
+30. The cart or checkout presentation must remain visually connected to the Giving Machine experience but must feel clearer, calmer, and less theatrical than machine browsing.
+31. Entering cart or checkout presentation must shift emphasis from immersive machine browsing toward clear task completion and review.
+32. Returning from cart or checkout presentation to machine browsing within the Giving Machine surface must preserve the broader Giving Machine destination context.
+33. The Giving Machine experience must provide access to a separate `Info` screen for acknowledgements and app information.
+34. The `Info` screen must be non-transactional and must not arm items or add items to cart by itself.
+35. Returning from the `Info` screen must return the user to the Giving Machine surface rather than exiting the experience entirely unless the user explicitly dismisses it.
+36. The `Info` screen and item detail presentation must preserve readable contrast between text and background.
+37. When the catalog is available but empty, the system must present a non-transactional empty state indicating that no Giving Machine items are available and must not fabricate visible slots.
+38. Accessibility interaction must expose the `Giving Machine` entry surface, expanded or closed state, current visible context, available dismissal actions, visible slot numbers, add-to-cart confirmation action, cart or checkout entry action, and info-screen entry action.
+39. Accessibility users must be able to open, browse, inspect item detail, confirm add to cart, open cart or checkout presentation, open the info screen, and dismiss the Giving Machine surface without relying on gesture-only interaction.
 
 ---
 
@@ -130,6 +145,9 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 
 - Condition: slot selection request targets an item not currently present in the visible machine window
   - System must: preserve the current armed state and return a failure response
+
+- Condition: item detail request targets an item not currently present in the visible machine window
+  - System must: preserve the current browse state and return a failure response
 
 - Condition: add-to-cart confirmation request occurs when no slot is armed
   - System must: preserve the current visible state and return a failure response
@@ -152,10 +170,11 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 
 - The user opens the Giving Machine surface and immediately dismisses it without browsing.
 - The catalog is available but empty.
-- The catalog contains fewer than nine items.
+- The catalog contains fewer than four items.
 - The visible machine window is at the top of the catalog.
 - The visible machine window is at the bottom of the catalog.
 - The user arms one item and then taps a different visible item before confirming add to cart.
+- The user opens one item detail presentation and then opens a different visible item detail presentation before confirming add to cart.
 - The user arms an item and dismisses the Giving Machine surface before confirming add to cart.
 - The user adds an item to cart and immediately continues browsing.
 - The user moves from machine browsing into cart or checkout presentation and then returns to machine browsing.
@@ -173,8 +192,9 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 - Must allow Giving Machine to open by tap or swipe-up and close by visible `X` or swipe-down.
 - Must make the expanded Giving Machine surface feel like a full-height destination.
 - Must preserve an immersive machine-window browse metaphor for catalog browsing.
-- Must present items in numbered slots.
+- Must preserve items in numbered slots and maintain slot identity even if visible card chrome does not prominently display the slot number inside the main card body.
 - Must require explicit confirmation before an armed item is added to cart.
+- Must allow the user-visible add confirmation action to live inside the selected item's detail presentation.
 - Must keep cart or checkout presentation clearer and less theatrical than machine browsing.
 - Must keep the `Info` screen behaviorally separate from machine browsing and cart or checkout presentation.
 - Must not fabricate catalog items, slot content, or info content when required presentation inputs are unavailable.
@@ -188,6 +208,7 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 - giving_machine_opened
 - giving_machine_dismissed
 - giving_machine_window_browsed
+- giving_machine_item_detail_opened
 - giving_machine_slot_armed
 - giving_machine_add_confirmation_presented
 - giving_machine_item_dispensed
@@ -199,6 +220,7 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 - giving machine open rate
 - giving machine dismiss rate
 - machine window browse rate
+- item detail open rate
 - slot arm rate
 - add-to-cart confirmation rate
 - dispense animation completion rate
@@ -209,6 +231,7 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 ### Logs
 - giving machine entry outcome
 - machine window browse outcome
+- item detail presentation outcome
 - slot arm outcome
 - add-to-cart confirmation presentation outcome
 - dispense animation outcome
@@ -224,14 +247,16 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 - [ ] Users can open the Giving Machine surface by tap or swipe-up and close it by visible `X` or swipe-down.
 - [ ] When opened, the Giving Machine surface behaves like a full-height destination and returns users to the daily challenge home surface when dismissed.
 - [ ] When catalog items are available, machine browsing presents an immersive machine-window view of numbered slots.
-- [ ] When enough items exist, the visible machine window shows three rows by three columns of slots with additional items peeking above or below when more items exist, and each browse request advances the window by exactly one visible row.
+- [ ] When enough items exist, the visible machine window shows two rows by two columns of slots with additional items peeking above or below when more items exist, and each browse request or direct scroll advances the window by exactly one visible row.
 - [ ] A single tap arms one visible item without adding it to cart.
-- [ ] A separate explicit confirmation action is required before an armed item is added to cart.
+- [ ] A single tap opens item detail for one visible item without adding it to cart.
+- [ ] Item cards may truncate browse copy, but the item detail presentation exposes the full selected-item content with readable contrast.
+- [ ] A separate explicit add-to-cart action is required from the item detail presentation before an item is added to cart.
 - [ ] After a successful add-to-cart confirmation, the experience shows a short dispense or fall animation.
 - [ ] Cart or checkout presentation feels clearer and less theatrical than machine browsing.
-- [ ] The `Info` screen exists as a separate non-transactional screen for acknowledgements and app information.
+- [ ] The `Info` screen exists as a separate non-transactional screen for acknowledgements and app information, and both it and the item detail presentation remain readable with clear text-to-background contrast.
 - [ ] When the catalog is available but empty, the Giving Machine surface shows an empty state rather than fabricated slots.
-- [ ] Accessibility users can open, browse, arm, confirm add to cart, enter cart or checkout presentation, open the info screen, and dismiss the Giving Machine surface without relying on gesture-only interaction.
+- [ ] Accessibility users can open, browse, inspect item detail, confirm add to cart, enter cart or checkout presentation, open the info screen, and dismiss the Giving Machine surface without relying on gesture-only interaction.
 
 ---
 
