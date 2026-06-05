@@ -97,7 +97,7 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 12. When the visible machine window is at the top of the catalog, the system must show only lower continuation peeks if more items exist below.
 13. When the visible machine window is at the bottom of the catalog, the system must show only upper continuation peeks if more items exist above.
 14. When the catalog contains fewer visible items than a full three-by-three window, the system must present only available items and must not fabricate unavailable catalog items.
-15. Machine-window browse requests must move the visible slot window through the catalog while preserving numbered slot presentation.
+15. Each machine-window browse request must move the visible slot window through the catalog by exactly one visible row while preserving numbered slot presentation.
 16. Slot numbering must follow catalog order and remain consistent for an item while that item remains present in the catalog.
 17. A single tap on a visible item must place that item's numbered slot into an armed state and must not add the item to cart by itself.
 18. When one item becomes armed, any previously armed item must return to the unselected state.
@@ -224,7 +224,7 @@ Define the user-visible presentation, navigation, and interaction behavior for e
 - [ ] Users can open the Giving Machine surface by tap or swipe-up and close it by visible `X` or swipe-down.
 - [ ] When opened, the Giving Machine surface behaves like a full-height destination and returns users to the daily challenge home surface when dismissed.
 - [ ] When catalog items are available, machine browsing presents an immersive machine-window view of numbered slots.
-- [ ] When enough items exist, the visible machine window shows three rows by three columns of slots with additional items peeking above or below when more items exist.
+- [ ] When enough items exist, the visible machine window shows three rows by three columns of slots with additional items peeking above or below when more items exist, and each browse request advances the window by exactly one visible row.
 - [ ] A single tap arms one visible item without adding it to cart.
 - [ ] A separate explicit confirmation action is required before an armed item is added to cart.
 - [ ] After a successful add-to-cart confirmation, the experience shows a short dispense or fall animation.

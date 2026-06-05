@@ -106,8 +106,13 @@ enum class MachineWindowBrowseDirection {
     NEXT,
 }
 
+enum class MachineWindowBrowseStep {
+    ONE_VISIBLE_ROW,
+}
+
 data class MachineWindowBrowseRequest(
     val direction: MachineWindowBrowseDirection,
+    val step: MachineWindowBrowseStep = MachineWindowBrowseStep.ONE_VISIBLE_ROW,
 )
 
 data class GivingMachineSlotSelectionRequest(

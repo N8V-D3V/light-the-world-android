@@ -25,7 +25,7 @@ Provide the machine-window browse presentation for catalog items, including visi
 ## 3. Inputs
 - `giving machine catalog: collection` - ordered set of catalog items available for Giving Machine presentation.
 - `current catalog state: state` - whether catalog content is available, unavailable, or empty for presentation.
-- `machine browse request: event` - user action requesting movement through the visible machine window.
+- `machine browse request: event` - user action requesting movement through the visible machine window by exactly one visible row.
 
 ---
 
@@ -63,9 +63,10 @@ Provide the machine-window browse presentation for catalog items, including visi
 7. Must present only available items when the catalog contains fewer visible items than a full three-by-three window.
 8. Must not fabricate unavailable catalog items or slots.
 9. Must move the visible slot window through the catalog for machine-window browse requests while preserving numbered slot presentation.
-10. Must assign slot numbers according to catalog order.
-11. Must keep a slot number consistent for an item while that item remains present in the catalog.
-12. Must present a non-transactional empty state when the catalog is available but empty.
+10. Must advance the visible slot window by exactly one visible row for each machine-window browse request.
+11. Must assign slot numbers according to catalog order.
+12. Must keep a slot number consistent for an item while that item remains present in the catalog.
+13. Must present a non-transactional empty state when the catalog is available but empty.
 
 ---
 
@@ -85,6 +86,7 @@ Provide the machine-window browse presentation for catalog items, including visi
 - Must remain reusable without embedding orchestration logic
 - Must not redefine donation availability rules beyond presented state, pricing rules, cart math, checkout, payment, receipt, or refund behavior
 - Must preserve the approved machine-window metaphor and numbered-slot presentation
+- Must preserve the approved one-visible-row browse-step granularity for each machine-window browse request
 
 ---
 
