@@ -937,12 +937,16 @@ private fun LTWMachineSlotCard(
             Text(
                 text = item.description,
                 style = MaterialTheme.typography.bodySmall,
-                maxLines = 3,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 color = MachineCardBody,
             )
+            Spacer(modifier = Modifier.height(10.dp))
+            LTWOptionalItemImage(
+                imageReference = item.imageReference,
+                height = 78.dp,
+            )
             Spacer(modifier = Modifier.weight(1f, fill = true))
-            LTWOptionalItemImage(imageReference = item.imageReference)
         }
     }
 }
