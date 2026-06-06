@@ -24,12 +24,16 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,6 +71,7 @@ import com.n8vd3v.lighttheworld.R
 import com.n8vd3v.lighttheworld.RichRed
 import com.n8vd3v.lighttheworld.features.dailychallenge.CampaignWindow
 import com.n8vd3v.lighttheworld.features.dailychallenge.DailyServiceChallengeFlow
+import com.n8vd3v.lighttheworld.features.dailychallenge.share.SharePayload
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.absoluteValue
@@ -78,15 +83,21 @@ fun DailyChallengeCardScreen(
     flow: DailyServiceChallengeFlow,
     currentLocalDate: LocalDate,
     campaignWindow: CampaignWindow,
+    appLink: String,
+    onSharePayload: (SharePayload) -> Unit,
     coordinator: ChallengeCardPresentationCoordinator = remember { ChallengeCardPresentationCoordinator() },
 ) {
     val emptyMessage = stringResource(R.string.no_challenges_available)
-    val browseResponse = remember(flow, currentLocalDate, campaignWindow) {
-        flow.browseChallengeCards(
+    val runtimeController = remember(flow, currentLocalDate, campaignWindow, appLink) {
+        DailyChallengeCardRuntimeController(
+            flow = flow,
             currentLocalDate = currentLocalDate,
             campaignWindow = campaignWindow,
+            appLink = appLink,
         )
     }
+    val runtimeState = runtimeController.uiState
+    val browseResponse = runtimeState.browseResponse
 
     val loadState = remember(browseResponse, currentLocalDate, coordinator) {
         coordinator.resolveLoadState(
@@ -187,6 +198,10 @@ fun DailyChallengeCardScreen(
     }
     val contentState = renderState as ChallengeCardPresentationRenderState.Content
     val activeCardIdentifier = contentState.activeCardIdentifier ?: currentPageCardIdentifier
+    val activeCard = contentState.railResponse.challengeCardRail.firstOrNull {
+        it.cardIdentifier == activeCardIdentifier
+    } ?: presentedCards.getOrNull(pagerState.currentPage)
+    val actionState = runtimeController.actionStateFor(activeCard?.challengeDate)
     val activeFaceState = contentState.accessibilityResponse.cardFaceState
         ?: activeCardIdentifier?.let { identifier ->
             ChallengeCardFaceState(
@@ -278,6 +293,18 @@ fun DailyChallengeCardScreen(
         if (interactionFailure != null) {
             Text(
                 text = interactionFailure!!.message,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 4.dp),
+                textAlign = TextAlign.Center,
+                fontSize = 14.sp,
+                color = RichRed,
+            )
+        }
+
+        if (runtimeState.latestFailureMessage != null) {
+            Text(
+                text = runtimeState.latestFailureMessage,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 4.dp),
@@ -398,6 +425,51 @@ fun DailyChallengeCardScreen(
             )
         }
 
+        if (actionState.canMarkComplete || actionState.canRequestReversal || actionState.canShare) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (actionState.canMarkComplete) {
+                    Button(
+                        onClick = { runtimeController.markComplete(activeCard?.challengeDate) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(text = stringResource(R.string.challenge_mark_complete))
+                    }
+                }
+                if (actionState.canRequestReversal) {
+                    if (actionState.canMarkComplete) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+                    OutlinedButton(
+                        onClick = { runtimeController.requestCompletionReversal(activeCard?.challengeDate) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(text = stringResource(R.string.challenge_mark_incomplete))
+                    }
+                }
+                if (actionState.canShare) {
+                    if (actionState.canMarkComplete || actionState.canRequestReversal) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+                    Button(
+                        onClick = {
+                            runtimeController.shareCompletedChallenge(
+                                challengeDate = activeCard?.challengeDate,
+                                onSharePayloadReady = onSharePayload,
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(text = stringResource(R.string.challenge_share))
+                    }
+                }
+            }
+        }
+
         val position = contentState.railResponse.activeCardState?.sequencePosition
         Text(
             text = if (position != null) {
@@ -412,6 +484,24 @@ fun DailyChallengeCardScreen(
             fontSize = 16.sp,
             color = Color.Gray,
             fontWeight = FontWeight.Medium,
+        )
+    }
+
+    runtimeState.pendingReversalPrompt?.let { prompt ->
+        AlertDialog(
+            onDismissRequest = { runtimeController.dismissCompletionReversalPrompt() },
+            title = { Text(text = stringResource(R.string.challenge_reversal_title)) },
+            text = { Text(text = prompt.message) },
+            confirmButton = {
+                TextButton(onClick = { runtimeController.confirmCompletionReversal() }) {
+                    Text(text = stringResource(R.string.challenge_mark_incomplete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { runtimeController.dismissCompletionReversalPrompt() }) {
+                    Text(text = stringResource(R.string.challenge_keep_complete))
+                }
+            },
         )
     }
 }

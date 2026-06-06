@@ -1,5 +1,6 @@
 package com.n8vd3v.lighttheworld
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -57,6 +58,19 @@ class MainActivity : ComponentActivity() {
                             flow = challengeFlow,
                             currentLocalDate = currentLocalDate,
                             campaignWindow = campaignWindow,
+                            appLink = DAILY_CHALLENGE_SHARE_APP_LINK,
+                            onSharePayload = { payload ->
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, payload.completionMessage)
+                                }
+                                startActivity(
+                                    Intent.createChooser(
+                                        shareIntent,
+                                        getString(R.string.challenge_share_chooser_title),
+                                    ),
+                                )
+                            },
                         )
                     }
                 }
@@ -78,3 +92,5 @@ fun LightTheWorldTheme(content: @Composable () -> Unit) {
         content = content,
     )
 }
+
+private const val DAILY_CHALLENGE_SHARE_APP_LINK = "https://www.lighttheworld.org/"

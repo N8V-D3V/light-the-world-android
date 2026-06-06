@@ -4,6 +4,12 @@
     <string name="no_challenges_available">No challenges are available at this time.</string>
     <string name="suggestion_bullet">• %1$s</string>
     <string name="completed_content_description">Completed</string>
+    <string name="challenge_mark_complete">Mark Complete</string>
+    <string name="challenge_mark_incomplete">Mark Incomplete</string>
+    <string name="challenge_keep_complete">Keep Complete</string>
+    <string name="challenge_share">Share</string>
+    <string name="challenge_reversal_title">Mark this challenge incomplete?</string>
+    <string name="challenge_share_chooser_title">Share completed challenge</string>
     <string name="giving_machine_label">Giving Machine</string>
     <string name="giving_machine_open_action">Open Giving Machine</string>
     <string name="giving_machine_dismiss_action">Dismiss Giving Machine</string>
