@@ -35,6 +35,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -64,6 +65,9 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.n8vd3v.lighttheworld.CrispWhite
 import com.n8vd3v.lighttheworld.DeepGold
 import com.n8vd3v.lighttheworld.MidnightBlue
@@ -81,23 +85,37 @@ import kotlinx.coroutines.launch
 @Composable
 fun DailyChallengeCardScreen(
     flow: DailyServiceChallengeFlow,
-    currentLocalDate: LocalDate,
+    currentLocalDateProvider: () -> LocalDate,
     campaignWindow: CampaignWindow,
     appLink: String,
     onSharePayload: (SharePayload) -> Unit,
     coordinator: ChallengeCardPresentationCoordinator = remember { ChallengeCardPresentationCoordinator() },
 ) {
     val emptyMessage = stringResource(R.string.no_challenges_available)
-    val runtimeController = remember(flow, currentLocalDate, campaignWindow, appLink) {
+    val runtimeController = remember(flow, currentLocalDateProvider, campaignWindow, appLink) {
         DailyChallengeCardRuntimeController(
             flow = flow,
-            currentLocalDate = currentLocalDate,
+            currentLocalDateProvider = currentLocalDateProvider,
             campaignWindow = campaignWindow,
             appLink = appLink,
         )
     }
     val runtimeState = runtimeController.uiState
     val browseResponse = runtimeState.browseResponse
+    val currentLocalDate = runtimeState.currentLocalDate
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, runtimeController) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                runtimeController.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val loadState = remember(browseResponse, currentLocalDate, coordinator) {
         coordinator.resolveLoadState(

@@ -20,6 +20,7 @@ data class DailyChallengeCardActionState(
 )
 
 data class DailyChallengeCardRuntimeUiState(
+    val currentLocalDate: LocalDate,
     val browseResponse: DailyChallengeBrowseExperienceResponse,
     val pendingReversalPrompt: CompletionReversalPrompt? = null,
     val latestFailureMessage: String? = null,
@@ -27,17 +28,23 @@ data class DailyChallengeCardRuntimeUiState(
 
 class DailyChallengeCardRuntimeController(
     private val flow: DailyServiceChallengeFlow,
-    private val currentLocalDate: LocalDate,
+    private val currentLocalDateProvider: () -> LocalDate,
     private val campaignWindow: CampaignWindow,
     private val appLink: String,
 ) {
 
     var uiState by mutableStateOf(
-        DailyChallengeCardRuntimeUiState(
-            browseResponse = browseChallenges(),
-        ),
+        initialUiState(),
     )
         private set
+
+    fun refresh() {
+        val currentLocalDate = currentLocalDate()
+        uiState = uiState.copy(
+            currentLocalDate = currentLocalDate,
+            browseResponse = browseChallenges(currentLocalDate),
+        )
+    }
 
     fun actionStateFor(challengeDate: LocalDate?): DailyChallengeCardActionState {
         if (challengeDate == null) {
@@ -63,6 +70,7 @@ class DailyChallengeCardRuntimeController(
             return
         }
 
+        val currentLocalDate = currentLocalDate()
         val response = flow.markChallengeCompleted(
             currentLocalDate = currentLocalDate,
             selectedChallengeDate = challengeDate,
@@ -71,12 +79,14 @@ class DailyChallengeCardRuntimeController(
         val failureMessage = response.calendarFailureResponse?.message ?: response.progressFailureResponse?.message
         uiState = if (failureMessage == null) {
             uiState.copy(
-                browseResponse = browseChallenges(),
+                currentLocalDate = currentLocalDate,
+                browseResponse = browseChallenges(currentLocalDate),
                 pendingReversalPrompt = null,
                 latestFailureMessage = null,
             )
         } else {
             uiState.copy(
+                currentLocalDate = currentLocalDate,
                 pendingReversalPrompt = null,
                 latestFailureMessage = failureMessage,
             )
@@ -88,6 +98,7 @@ class DailyChallengeCardRuntimeController(
             return
         }
 
+        val currentLocalDate = currentLocalDate()
         val response = flow.requestCompletionReversal(
             currentLocalDate = currentLocalDate,
             selectedChallengeDate = challengeDate,
@@ -96,11 +107,13 @@ class DailyChallengeCardRuntimeController(
         val failureMessage = response.calendarFailureResponse?.message ?: response.progressFailureResponse?.message
         uiState = if (response.completionReversalPrompt != null && failureMessage == null) {
             uiState.copy(
+                currentLocalDate = currentLocalDate,
                 pendingReversalPrompt = response.completionReversalPrompt,
                 latestFailureMessage = null,
             )
         } else {
             uiState.copy(
+                currentLocalDate = currentLocalDate,
                 pendingReversalPrompt = null,
                 latestFailureMessage = failureMessage,
             )
@@ -113,6 +126,7 @@ class DailyChallengeCardRuntimeController(
 
     fun confirmCompletionReversal() {
         val prompt = uiState.pendingReversalPrompt ?: return
+        val currentLocalDate = currentLocalDate()
         val response = flow.confirmCompletionReversal(
             currentLocalDate = currentLocalDate,
             selectedChallengeDate = prompt.challengeDate,
@@ -122,12 +136,14 @@ class DailyChallengeCardRuntimeController(
         val failureMessage = response.calendarFailureResponse?.message ?: response.progressFailureResponse?.message
         uiState = if (failureMessage == null) {
             uiState.copy(
-                browseResponse = browseChallenges(),
+                currentLocalDate = currentLocalDate,
+                browseResponse = browseChallenges(currentLocalDate),
                 pendingReversalPrompt = null,
                 latestFailureMessage = null,
             )
         } else {
             uiState.copy(
+                currentLocalDate = currentLocalDate,
                 pendingReversalPrompt = null,
                 latestFailureMessage = failureMessage,
             )
@@ -142,6 +158,7 @@ class DailyChallengeCardRuntimeController(
             return
         }
 
+        val currentLocalDate = currentLocalDate()
         val response = flow.buildSharePayload(
             currentLocalDate = currentLocalDate,
             selectedChallengeDate = challengeDate,
@@ -150,14 +167,30 @@ class DailyChallengeCardRuntimeController(
         )
         val failureMessage = response.calendarFailureResponse?.message ?: response.shareFailureResponse?.message
         if (response.sharePayload != null && failureMessage == null) {
-            uiState = uiState.copy(latestFailureMessage = null)
+            uiState = uiState.copy(
+                currentLocalDate = currentLocalDate,
+                latestFailureMessage = null,
+            )
             onSharePayloadReady(response.sharePayload)
         } else {
-            uiState = uiState.copy(latestFailureMessage = failureMessage)
+            uiState = uiState.copy(
+                currentLocalDate = currentLocalDate,
+                latestFailureMessage = failureMessage,
+            )
         }
     }
 
-    private fun browseChallenges(): DailyChallengeBrowseExperienceResponse =
+    private fun initialUiState(): DailyChallengeCardRuntimeUiState {
+        val currentLocalDate = currentLocalDate()
+        return DailyChallengeCardRuntimeUiState(
+            currentLocalDate = currentLocalDate,
+            browseResponse = browseChallenges(currentLocalDate),
+        )
+    }
+
+    private fun currentLocalDate(): LocalDate = currentLocalDateProvider()
+
+    private fun browseChallenges(currentLocalDate: LocalDate): DailyChallengeBrowseExperienceResponse =
         flow.browseChallengeCards(
             currentLocalDate = currentLocalDate,
             campaignWindow = campaignWindow,

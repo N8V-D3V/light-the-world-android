@@ -21,7 +21,7 @@ class DailyChallengeCardRuntimeControllerTest {
 
     @Test
     fun completionActionAvailabilityTracksEligibilityAndCompletionState() {
-        val controller = controller(currentLocalDate = LocalDate.of(2026, 12, 10))
+        val controller = controller(initialCurrentLocalDate = LocalDate.of(2026, 12, 10))
 
         val todayActions = controller.actionStateFor(LocalDate.of(2026, 12, 10))
         val futureActions = controller.actionStateFor(LocalDate.of(2026, 12, 25))
@@ -37,7 +37,7 @@ class DailyChallengeCardRuntimeControllerTest {
     @Test
     fun confirmingReversalChangesCompletedChallengeBackToIncomplete() {
         val challengeDate = LocalDate.of(2026, 12, 10)
-        val controller = controller(currentLocalDate = challengeDate)
+        val controller = controller(initialCurrentLocalDate = challengeDate)
 
         controller.markComplete(challengeDate)
         controller.requestCompletionReversal(challengeDate)
@@ -62,7 +62,7 @@ class DailyChallengeCardRuntimeControllerTest {
     @Test
     fun dismissingReversalPromptPreservesCompletedState() {
         val challengeDate = LocalDate.of(2026, 12, 10)
-        val controller = controller(currentLocalDate = challengeDate)
+        val controller = controller(initialCurrentLocalDate = challengeDate)
 
         controller.markComplete(challengeDate)
         controller.requestCompletionReversal(challengeDate)
@@ -77,7 +77,7 @@ class DailyChallengeCardRuntimeControllerTest {
     @Test
     fun shareUsesExistingPayloadBuilderOnlyForCompletedChallenges() {
         val challengeDate = LocalDate.of(2026, 12, 10)
-        val controller = controller(currentLocalDate = challengeDate)
+        val controller = controller(initialCurrentLocalDate = challengeDate)
         var launchedPayload: SharePayload? = null
 
         controller.shareCompletedChallenge(challengeDate) { launchedPayload = it }
@@ -98,7 +98,7 @@ class DailyChallengeCardRuntimeControllerTest {
 
     @Test
     fun completionFailureIsSurfacedForFutureChallenge() {
-        val controller = controller(currentLocalDate = LocalDate.of(2026, 12, 10))
+        val controller = controller(initialCurrentLocalDate = LocalDate.of(2026, 12, 10))
 
         controller.markComplete(LocalDate.of(2026, 12, 25))
 
@@ -109,8 +109,30 @@ class DailyChallengeCardRuntimeControllerTest {
         assertFalse(controller.actionStateFor(LocalDate.of(2026, 12, 25)).canShare)
     }
 
+    @Test
+    fun refreshUsesUpdatedCurrentDateProviderForEligibilityAndPresentationState() {
+        val challengeDate = LocalDate.of(2026, 12, 11)
+        var currentLocalDate = LocalDate.of(2026, 12, 10)
+        val controller = controller(currentLocalDateProvider = { currentLocalDate })
+
+        assertEquals(LocalDate.of(2026, 12, 10), controller.uiState.currentLocalDate)
+        assertFalse(controller.actionStateFor(challengeDate).canMarkComplete)
+
+        currentLocalDate = challengeDate
+        controller.refresh()
+
+        assertEquals(challengeDate, controller.uiState.currentLocalDate)
+        assertTrue(controller.actionStateFor(challengeDate).canMarkComplete)
+    }
+
     private fun controller(
-        currentLocalDate: LocalDate,
+        initialCurrentLocalDate: LocalDate,
+    ): DailyChallengeCardRuntimeController = controller(
+        currentLocalDateProvider = { initialCurrentLocalDate },
+    )
+
+    private fun controller(
+        currentLocalDateProvider: () -> LocalDate,
     ): DailyChallengeCardRuntimeController = DailyChallengeCardRuntimeController(
         flow = DailyServiceChallengeFlow(
             challengeCalendar = StubChallengeCalendar(),
@@ -120,7 +142,7 @@ class DailyChallengeCardRuntimeControllerTest {
             challengeReminderScheduler = StubChallengeReminderScheduler(),
             challengeShareComposer = StubChallengeShareComposer(),
         ),
-        currentLocalDate = currentLocalDate,
+        currentLocalDateProvider = currentLocalDateProvider,
         campaignWindow = CampaignWindow.LightTheWorldAnnual,
         appLink = "https://www.lighttheworld.org/",
     )

@@ -32,9 +32,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val currentLocalDate = LocalDate.now()
+        val currentLocalDateProvider = { LocalDate.now() }
         val contentSource = JsonChallengeContentSource(this)
-        val campaignWindow = contentSource.resolveCampaignWindow(currentLocalDate.year)
+        val campaignWindow = contentSource.resolveCampaignWindow(currentLocalDateProvider().year)
             ?: CampaignWindow.LightTheWorldAnnual
         val challengeFlow = DailyServiceChallengeFlow(
             challengeCalendar = StubChallengeCalendar(contentSource = contentSource),
@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         DailyChallengeCardScreen(
                             flow = challengeFlow,
-                            currentLocalDate = currentLocalDate,
+                            currentLocalDateProvider = currentLocalDateProvider,
                             campaignWindow = campaignWindow,
                             appLink = DAILY_CHALLENGE_SHARE_APP_LINK,
                             onSharePayload = { payload ->
